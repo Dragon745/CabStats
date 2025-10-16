@@ -363,6 +363,39 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Expense operations
+    const deleteExpense = async (expenseId) => {
+        try {
+            const expense = expenses.find(e => e.id === expenseId);
+            if (!expense) {
+                throw new Error('Expense not found');
+            }
+
+            // Reverse the account balance (add back the amount that was deducted)
+            const accountName = expense.account;
+            const account = accounts.find(acc => acc.name === accountName);
+            if (account) {
+                await updateAccountBalance(account.id, expense.amount);
+            }
+
+            // Remove the expense from database
+            const transaction = database.db.transaction([STORES.EXPENSES], 'readwrite');
+            const store = transaction.objectStore(STORES.EXPENSES);
+            await new Promise((resolve, reject) => {
+                const request = store.delete(expenseId);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+
+            // Remove from state
+            setExpenses(prev => prev.filter(e => e.id !== expenseId));
+
+        } catch (error) {
+            console.error('Failed to delete expense:', error);
+            throw error;
+        }
+    };
+
     // Account transfer operations
     const transferBetweenAccounts = async (fromAccountName, toAccountName, amount) => {
         try {
@@ -487,6 +520,92 @@ export const AppProvider = ({ children }) => {
         return getTodaysRides().reduce((sum, ride) => sum + ride.profit, 0);
     };
 
+    // Date-based utility functions for Stats
+    const getDateRides = (dateString) => {
+        const targetDate = new Date(dateString).toDateString();
+        return rides.filter(ride => new Date(ride.createdAt).toDateString() === targetDate);
+    };
+
+    const getDateExpenses = (dateString) => {
+        const targetDate = new Date(dateString).toDateString();
+        return expenses.filter(expense => new Date(expense.createdAt).toDateString() === targetDate);
+    };
+
+    const getDateStats = (dateString) => {
+        const dateRides = getDateRides(dateString);
+        const dateExpenses = getDateExpenses(dateString);
+
+        // Ride statistics
+        const totalRides = dateRides.length;
+        const totalEarnings = dateRides.reduce((sum, ride) => sum + ride.fare, 0);
+        const totalProfit = dateRides.reduce((sum, ride) => sum + ride.profit, 0);
+        const averageFare = totalRides > 0 ? totalEarnings / totalRides : 0;
+        const averageProfit = totalRides > 0 ? totalProfit / totalRides : 0;
+        const bestRide = totalRides > 0 ? Math.max(...dateRides.map(ride => ride.profit)) : 0;
+        const worstRide = totalRides > 0 ? Math.min(...dateRides.map(ride => ride.profit)) : 0;
+
+        // Distance & Time
+        const totalKm = dateRides.reduce((sum, ride) => sum + ride.km, 0);
+        const averageDistance = totalRides > 0 ? totalKm / totalRides : 0;
+        const totalTimeMinutes = dateRides.reduce((sum, ride) => {
+            const duration = calculateDuration(ride.startTime, ride.endTime);
+            return sum + duration;
+        }, 0);
+        const averageDuration = totalRides > 0 ? totalTimeMinutes / totalRides : 0;
+
+        // Efficiency metrics
+        const averageProfitPerKm = totalKm > 0 ? totalProfit / totalKm : 0;
+        const averageProfitPerMin = totalTimeMinutes > 0 ? totalProfit / totalTimeMinutes : 0;
+        const totalFuelAllocation = dateRides.reduce((sum, ride) => sum + ride.fuelAllocation, 0);
+
+        // Expense statistics
+        const totalExpenses = dateExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+        const expensesByCategory = {};
+        dateExpenses.forEach(expense => {
+            expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.amount;
+        });
+        const mostExpensiveCategory = Object.keys(expensesByCategory).reduce((a, b) =>
+            expensesByCategory[a] > expensesByCategory[b] ? a : b, 'None'
+        );
+
+        // Financial summary
+        const grossEarnings = totalEarnings;
+        const netProfit = grossEarnings - totalExpenses;
+        const profitMargin = grossEarnings > 0 ? (netProfit / grossEarnings) * 100 : 0;
+
+        return {
+            // Ride statistics
+            totalRides,
+            totalEarnings,
+            totalProfit,
+            averageFare,
+            averageProfit,
+            bestRide,
+            worstRide,
+
+            // Distance & Time
+            totalKm,
+            averageDistance,
+            totalTimeMinutes,
+            averageDuration,
+
+            // Efficiency metrics
+            averageProfitPerKm,
+            averageProfitPerMin,
+            totalFuelAllocation,
+
+            // Expense statistics
+            totalExpenses,
+            expensesByCategory,
+            mostExpensiveCategory,
+
+            // Financial summary
+            grossEarnings,
+            netProfit,
+            profitMargin
+        };
+    };
+
     const value = {
         // State
         accounts,
@@ -506,14 +625,18 @@ export const AppProvider = ({ children }) => {
         startRide,
         endRide,
         deleteRide,
+        addExpense,
+        deleteExpense,
         transferBetweenAccounts,
         transferToFuelAccount,
-        addExpense,
 
         // Utilities
         getCombinedBalance,
         getTodaysRides,
         getTodaysProfit,
+        getDateRides,
+        getDateExpenses,
+        getDateStats,
         calculateDuration,
         formatCurrency,
         formatTime,

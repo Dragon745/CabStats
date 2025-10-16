@@ -5,7 +5,8 @@ const Navigation = ({ activeTab, onTabChange }) => {
         { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
         { id: 'ride', label: 'Ride', icon: '🚗' },
         { id: 'accounts', label: 'Accounts', icon: '💰' },
-        { id: 'expenses', label: 'Expenses', icon: '💸' }
+        { id: 'expenses', label: 'Expenses', icon: '💸' },
+        { id: 'stats', label: 'Stats', icon: '📊' }
     ];
 
     return (

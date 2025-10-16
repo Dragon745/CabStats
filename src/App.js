@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import RideTracker from './components/RideTracker';
 import ExpenseTracker from './components/ExpenseTracker';
 import AccountsView from './components/AccountsView';
+import Stats from './components/Stats';
 import Navigation from './components/Navigation';
 
 function AppContent() {
@@ -64,6 +65,8 @@ function AppContent() {
         return <AccountsView />;
       case 'expenses':
         return <ExpenseTracker />;
+      case 'stats':
+        return <Stats />;
       default:
         return <Dashboard />;
     }

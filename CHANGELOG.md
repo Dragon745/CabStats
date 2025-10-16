@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2025-10-17 00:29:11
+
+### Added
+
+- **Stats Tab with Daily Stats**: New comprehensive statistics view with date selector
+- **Daily Statistics Dashboard**: Complete daily analytics including ride stats, distance/time metrics, efficiency metrics, expense breakdown, and financial summary
+- **Date Selection**: Users can select any date to view historical statistics (defaults to today)
+- **Comprehensive Analytics**:
+  - Ride statistics (total rides, earnings, profit, averages, best/worst rides)
+  - Distance & time metrics (total/average km, total/average duration)
+  - Efficiency metrics (profit per km, profit per minute, fuel allocation)
+  - Expense statistics (total expenses, category breakdown, most expensive category)
+  - Financial summary (gross earnings, net profit, profit margin)
+- **Visual Data Presentation**: Card-based layout with icons, color coding, and organized sections
+- **Empty State Handling**: Proper display when no data exists for selected date
+
+### Improved
+
+- **Navigation Enhancement**: Added Stats tab to bottom navigation (now 5 tabs total)
+- **Data Analysis**: Enhanced AppContext with date-based filtering functions (`getDateRides`, `getDateExpenses`, `getDateStats`)
+- **User Experience**: Intuitive date picker with clear labeling and responsive design
+
+### Technical Changes
+
+- Added `getDateRides()`, `getDateExpenses()`, and `getDateStats()` utility functions to AppContext
+- Created new `Stats.js` component with comprehensive statistics display
+- Updated Navigation component to include Stats tab
+- Enhanced App.js routing to handle Stats tab
+- Implemented date-based data filtering and comprehensive statistics calculations
+
 ## [2.1.0] - 2025-10-16 23:48:22
 
 ### Improved
@@ -61,8 +91,6 @@ All notable changes to this project will be documented in this file.
 - Added `transferBetweenAccounts()` function for general account transfers
 - Enhanced `deleteRide()` function with complete account reversal logic
 - Updated expense categories in `getExpenseCategories()` utility function
-
-## [Unreleased]
 
 ## [2.0.0] - 2025-10-16
 

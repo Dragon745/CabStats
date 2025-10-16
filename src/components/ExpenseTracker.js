@@ -4,9 +4,12 @@ import { useApp } from '../context/AppContext';
 const ExpenseTracker = () => {
     const {
         addExpense,
+        deleteExpense,
         getExpenseCategories,
         accounts,
-        formatCurrency
+        expenses,
+        formatCurrency,
+        formatDate
     } = useApp();
 
     const [expenseData, setExpenseData] = useState({
@@ -57,15 +60,31 @@ const ExpenseTracker = () => {
         }));
     };
 
+    const handleDeleteExpense = async (expenseId) => {
+        if (window.confirm('Are you sure you want to delete this expense? This will reverse the account deduction.')) {
+            try {
+                await deleteExpense(expenseId);
+                alert('Expense deleted successfully!');
+            } catch (error) {
+                alert('Failed to delete expense: ' + error.message);
+            }
+        }
+    };
+
     const getCategoryIcon = (category) => {
         switch (category) {
+            case 'Airport Fee': return '✈️';
             case 'Cigarette': return '🚬';
             case 'Cleaning': return '🧽';
             case 'Food': return '🍽️';
             case 'Fuel': return '⛽';
             case 'Goodies': return '🍬';
             case 'Other': return '📦';
+            case 'Other Fees': return '💳';
+            case 'Parking Fee': return '🅿️';
+            case 'Platform Fee': return '📱';
             case 'Rent': return '🏠';
+            case 'Tolls': return '🛣️';
             case 'Water': return '💧';
             case 'Withdrawals': return '💸';
             default: return '💰';
@@ -202,6 +221,72 @@ const ExpenseTracker = () => {
                         ))}
                     </div>
                 </div>
+            </div>
+
+            {/* Expense History */}
+            <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Expenses</h3>
+
+                {expenses.length === 0 ? (
+                    <div className="text-center py-8">
+                        <div className="text-gray-400 text-6xl mb-4">💸</div>
+                        <p className="text-gray-600">No expenses recorded yet</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {expenses
+                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                            .slice(0, 10) // Show last 10 expenses
+                            .map((expense) => (
+                                <div key={expense.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-2 mb-1">
+                                                <span className="text-lg">{getCategoryIcon(expense.category)}</span>
+                                                <span className="font-semibold text-gray-800">{expense.category}</span>
+                                                <span className="text-gray-500 text-sm">
+                                                    {expense.account === 'Fuel Account' ? '⛽' :
+                                                        expense.account === 'Main Account' ? '💰' :
+                                                            expense.account === 'Cash Account' ? '💵' :
+                                                                expense.account === 'Platform Account' ? '📱' : '💳'}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-gray-600">
+                                                {formatDate(expense.createdAt)} at {new Date(expense.createdAt).toLocaleTimeString()}
+                                            </div>
+                                            {expense.description && (
+                                                <div className="text-sm text-gray-500 mt-1 italic">
+                                                    "{expense.description}"
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center space-x-3">
+                                            <div className="text-right">
+                                                <div className="text-lg font-bold text-red-600">
+                                                    -{formatCurrency(expense.amount)}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteExpense(expense.id)}
+                                                className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                title="Delete expense"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                        {expenses.length > 10 && (
+                            <div className="text-center pt-4">
+                                <p className="text-sm text-gray-500">
+                                    Showing last 10 expenses. Total expenses: {expenses.length}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
