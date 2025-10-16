@@ -1,38 +1,25 @@
+/* CabStats App Styles */
 .App {
-  text-align: center;
+  /* Remove old styles that interfere with new design */
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* Ensure proper mobile viewport */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+  .App {
+    font-size: 16px;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Ensure proper spacing for bottom navigation */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
 }

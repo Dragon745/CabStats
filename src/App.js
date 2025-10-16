@@ -1,11 +1,19 @@
-import logo from './logo.svg';
 import './App.css';
 import { useState, useEffect } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import Dashboard from './components/Dashboard';
+import RideTracker from './components/RideTracker';
+import ExpenseTracker from './components/ExpenseTracker';
+import AccountsView from './components/AccountsView';
+import Navigation from './components/Navigation';
 
-function App() {
+function AppContent() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const { loading } = useApp();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -46,8 +54,34 @@ function App() {
     }
   };
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'ride':
+        return <RideTracker />;
+      case 'accounts':
+        return <AccountsView />;
+      case 'expenses':
+        return <ExpenseTracker />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading CabStats...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-20">
       {/* Offline indicator */}
       {!isOnline && (
         <div className="bg-yellow-500 text-white text-center py-2 px-4">
@@ -68,32 +102,22 @@ function App() {
         </div>
       )}
 
-      <header className="App-header">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-          <img src={logo} className="App-logo mx-auto mb-6" alt="logo" />
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            Welcome to CabStats
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Edit <code className="bg-gray-100 px-2 py-1 rounded text-sm">src/App.js</code> and save to reload.
-          </p>
-          <div className="mb-4">
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${isOnline ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
-              {isOnline ? '🟢 Online' : '🟡 Offline'}
-            </span>
-          </div>
-          <a
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </div>
-      </header>
+      {/* Main Content */}
+      <div className="pt-4">
+        {renderActiveTab()}
+      </div>
+
+      {/* Navigation */}
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }
 
