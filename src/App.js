@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -12,11 +14,37 @@ function App() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Handle PWA install prompt
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Handle successful installation
+    window.addEventListener('appinstalled', () => {
+      setShowInstallButton(false);
+      setDeferredPrompt(null);
+    });
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      setDeferredPrompt(null);
+      setShowInstallButton(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -24,6 +52,19 @@ function App() {
       {!isOnline && (
         <div className="bg-yellow-500 text-white text-center py-2 px-4">
           <span className="font-semibold">📱 Offline Mode</span> - CabStats is working offline!
+        </div>
+      )}
+
+      {/* Install button */}
+      {showInstallButton && (
+        <div className="bg-green-500 text-white text-center py-2 px-4">
+          <span className="font-semibold">📱 Install CabStats</span> -
+          <button
+            onClick={handleInstallClick}
+            className="ml-2 underline hover:no-underline font-bold"
+          >
+            Click here to install
+          </button>
         </div>
       )}
 

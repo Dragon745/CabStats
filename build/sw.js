@@ -1,13 +1,13 @@
 const CACHE_NAME = 'cabstats-v1';
 const urlsToCache = [
     '/',
-    '/static/js/bundle.js',
-    '/static/css/main.css',
     '/manifest.json',
     '/favicon.ico',
     '/logo192.png',
     '/logo512.png',
-    '/favicon.svg'
+    '/favicon.svg',
+    '/static/js/bundle.js',
+    '/static/css/main.css'
 ];
 
 // Install event - cache resources
