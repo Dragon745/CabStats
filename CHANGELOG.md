@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-10-18 18:47:31
+
+### Added
+
+- **Payment QR Code Display**:
+  - QR code button in Dashboard Total Balance section (top-right)
+  - Fullscreen modal display of PaymentQR.jpg image
+  - No borders or containers - pure fullscreen experience
+  - Click outside or close button to dismiss
+  - Responsive design for all screen sizes
+
 ## [3.0.0] - 2025-10-18 18:35:22
 
 ### Added
