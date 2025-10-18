@@ -26,12 +26,12 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }) => {
     const [accounts, setAccounts] = useState([]);
-    const [businessDays, setBusinessDays] = useState([]);
+    const [sessions, setSessions] = useState([]);
     const [rides, setRides] = useState([]);
     const [fuelTransfers, setFuelTransfers] = useState([]);
     const [expenses, setExpenses] = useState([]);
     const [activeRide, setActiveRide] = useState(null);
-    const [currentBusinessDay, setCurrentBusinessDay] = useState(null);
+    const [currentSession, setCurrentSession] = useState(null);
     const [pendingFuelTransfer, setPendingFuelTransfer] = useState(0);
     const [loading, setLoading] = useState(true);
 
@@ -54,9 +54,9 @@ export const AppProvider = ({ children }) => {
 
     const loadAllData = async () => {
         try {
-            const [accountsData, businessDaysData, ridesData, fuelTransfersData, expensesData, activeRideData] = await Promise.all([
+            const [accountsData, sessionsData, ridesData, fuelTransfersData, expensesData, activeRideData] = await Promise.all([
                 database.getAll(STORES.ACCOUNTS),
-                database.getAll(STORES.BUSINESS_DAYS),
+                database.getAll(STORES.SESSIONS),
                 database.getAll(STORES.RIDES),
                 database.getAll(STORES.FUEL_TRANSFERS),
                 database.getAll(STORES.EXPENSES),
@@ -64,7 +64,7 @@ export const AppProvider = ({ children }) => {
             ]);
 
             setAccounts(accountsData);
-            setBusinessDays(businessDaysData);
+            setSessions(sessionsData);
             setRides(ridesData);
             setFuelTransfers(fuelTransfersData);
             setExpenses(expensesData);
@@ -74,9 +74,9 @@ export const AppProvider = ({ children }) => {
                 setActiveRide(activeRideData);
             }
 
-            // Find active business day
-            const activeBusinessDay = businessDaysData.find(day => day.status === 'active');
-            setCurrentBusinessDay(activeBusinessDay);
+            // Find active session
+            const activeSession = sessionsData.find(session => session.status === 'active');
+            setCurrentSession(activeSession);
 
             // Calculate pending fuel transfer
             const pendingTransfers = fuelTransfersData.filter(transfer => transfer.status === 'pending');
@@ -109,71 +109,63 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Business day operations
-    const startBusinessDay = async (startKm) => {
+    // Session operations
+    const startSession = async (startKm) => {
         try {
-            const businessDay = {
+            const sessionNumber = sessions.length + 1;
+            const session = {
+                name: `Session #${sessionNumber}`,
                 startTime: new Date().toISOString(),
                 endTime: null,
                 startKm: parseFloat(startKm),
                 endKm: null,
                 totalKm: 0,
-                totalFuelExpense: 0,
-                costPerKm: 0,
                 status: 'active',
                 createdAt: new Date().toISOString()
             };
 
-            const id = await database.add(STORES.BUSINESS_DAYS, businessDay);
-            const newBusinessDay = { ...businessDay, id };
+            const id = await database.add(STORES.SESSIONS, session);
+            const newSession = { ...session, id };
 
-            setBusinessDays(prev => [...prev, newBusinessDay]);
-            setCurrentBusinessDay(newBusinessDay);
+            setSessions(prev => [...prev, newSession]);
+            setCurrentSession(newSession);
         } catch (error) {
-            console.error('Failed to start business day:', error);
+            console.error('Failed to start session:', error);
             throw error;
         }
     };
 
-    const endBusinessDay = async (endKm) => {
-        if (!currentBusinessDay) return;
+    const endSession = async (endKm) => {
+        if (!currentSession) return;
 
         try {
             const endTime = new Date().toISOString();
-            const totalKm = parseFloat(endKm) - currentBusinessDay.startKm;
+            const totalKm = parseFloat(endKm) - currentSession.startKm;
 
-            // Calculate total fuel expenses for the day
-            const dayExpenses = expenses.filter(expense =>
-                expense.businessDayId === currentBusinessDay.id && expense.category === 'Fuel'
-            );
-            const totalFuelExpense = dayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-            const costPerKm = totalKm > 0 ? totalFuelExpense / totalKm : 0;
-
-            const updatedBusinessDay = {
-                ...currentBusinessDay,
+            const updatedSession = {
+                ...currentSession,
                 endTime,
                 endKm: parseFloat(endKm),
                 totalKm,
-                totalFuelExpense,
-                costPerKm,
                 status: 'completed'
             };
 
-            await database.update(STORES.BUSINESS_DAYS, updatedBusinessDay);
-            setBusinessDays(prev => prev.map(day => day.id === currentBusinessDay.id ? updatedBusinessDay : day));
-            setCurrentBusinessDay(null);
+            await database.update(STORES.SESSIONS, updatedSession);
+            setSessions(prev => prev.map(session => session.id === currentSession.id ? updatedSession : session));
+            setCurrentSession(null);
         } catch (error) {
-            console.error('Failed to end business day:', error);
+            console.error('Failed to end session:', error);
             throw error;
         }
     };
+
 
     // Ride operations
     const startRide = async () => {
         const ride = {
             startTime: new Date().toISOString(),
             endTime: null,
-            businessDayId: currentBusinessDay?.id,
+            sessionId: currentSession?.id,
             km: 0,
             fare: 0,
             airportFee: 0,
@@ -468,7 +460,7 @@ export const AppProvider = ({ children }) => {
     const addExpense = async (expenseData) => {
         try {
             const expense = {
-                businessDayId: currentBusinessDay?.id,
+                sessionId: currentSession?.id,
                 category: expenseData.category,
                 amount: parseFloat(expenseData.amount),
                 account: expenseData.account,
@@ -485,17 +477,6 @@ export const AppProvider = ({ children }) => {
             const account = accounts.find(acc => acc.name === accountName);
             if (account) {
                 await updateAccountBalance(account.id, -expenseData.amount);
-            }
-
-            // Update business day fuel expense if it's a fuel expense
-            if (expenseData.category === 'Fuel' && currentBusinessDay) {
-                const updatedBusinessDay = {
-                    ...currentBusinessDay,
-                    totalFuelExpense: currentBusinessDay.totalFuelExpense + expenseData.amount
-                };
-                await database.update(STORES.BUSINESS_DAYS, updatedBusinessDay);
-                setCurrentBusinessDay(updatedBusinessDay);
-                setBusinessDays(prev => prev.map(day => day.id === currentBusinessDay.id ? updatedBusinessDay : day));
             }
         } catch (error) {
             console.error('Failed to add expense:', error);
@@ -606,22 +587,160 @@ export const AppProvider = ({ children }) => {
         };
     };
 
+    // Session utility functions
+    const getSessionRides = (sessionId) => {
+        return rides.filter(ride => ride.sessionId === sessionId);
+    };
+
+    const getSessionExpenses = (sessionId) => {
+        return expenses.filter(expense => expense.sessionId === sessionId);
+    };
+
+    // Reset all data
+    const resetAllData = async () => {
+        try {
+            // Clear all stores
+            const stores = [STORES.SESSIONS, STORES.RIDES, STORES.FUEL_TRANSFERS, STORES.EXPENSES];
+
+            for (const storeName of stores) {
+                const transaction = database.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                await new Promise((resolve, reject) => {
+                    const request = store.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            // Clear active ride
+            await database.clearActiveRide();
+
+            // Reset all account balances to 0
+            const freshAccounts = await database.getAll(STORES.ACCOUNTS);
+            for (const account of freshAccounts) {
+                const updatedAccount = {
+                    ...account,
+                    balance: 0,
+                    updatedAt: new Date().toISOString()
+                };
+                await database.update(STORES.ACCOUNTS, updatedAccount);
+            }
+
+            // Reload all data
+            await loadAllData();
+        } catch (error) {
+            console.error('Failed to reset data:', error);
+            throw error;
+        }
+    };
+
+    const getSessionStats = (sessionId) => {
+        const sessionRides = getSessionRides(sessionId);
+        const sessionExpenses = getSessionExpenses(sessionId);
+        const session = sessions.find(s => s.id === sessionId);
+
+        if (!session) {
+            return null;
+        }
+
+        // Ride statistics
+        const totalRides = sessionRides.length;
+        const totalEarnings = sessionRides.reduce((sum, ride) => sum + ride.fare, 0);
+        const totalProfit = sessionRides.reduce((sum, ride) => sum + ride.profit, 0);
+        const averageFare = totalRides > 0 ? totalEarnings / totalRides : 0;
+        const averageProfit = totalRides > 0 ? totalProfit / totalRides : 0;
+        const bestRide = totalRides > 0 ? Math.max(...sessionRides.map(ride => ride.profit)) : 0;
+        const worstRide = totalRides > 0 ? Math.min(...sessionRides.map(ride => ride.profit)) : 0;
+
+        // Distance & Time
+        const totalKm = sessionRides.reduce((sum, ride) => sum + ride.km, 0);
+        const averageDistance = totalRides > 0 ? totalKm / totalRides : 0;
+        const totalTimeMinutes = sessionRides.reduce((sum, ride) => {
+            const duration = calculateDuration(ride.startTime, ride.endTime);
+            return sum + duration;
+        }, 0);
+        const averageDuration = totalRides > 0 ? totalTimeMinutes / totalRides : 0;
+
+        // Efficiency metrics
+        const averageProfitPerKm = totalKm > 0 ? totalProfit / totalKm : 0;
+        const averageProfitPerMin = totalTimeMinutes > 0 ? totalProfit / totalTimeMinutes : 0;
+        const totalFuelAllocation = sessionRides.reduce((sum, ride) => sum + ride.fuelAllocation, 0);
+
+        // Expense statistics
+        const totalExpenses = sessionExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+        const expensesByCategory = {};
+        sessionExpenses.forEach(expense => {
+            expensesByCategory[expense.category] = (expensesByCategory[expense.category] || 0) + expense.amount;
+        });
+        const mostExpensiveCategory = Object.keys(expensesByCategory).reduce((a, b) =>
+            expensesByCategory[a] > expensesByCategory[b] ? a : b, 'None'
+        );
+
+        // Financial summary
+        const grossEarnings = totalEarnings;
+        const netProfit = grossEarnings - totalExpenses;
+        const profitMargin = grossEarnings > 0 ? (netProfit / grossEarnings) * 100 : 0;
+
+        // Session-specific metrics
+        const sessionDuration = session.endTime ?
+            calculateDuration(session.startTime, session.endTime) :
+            calculateDuration(session.startTime, new Date().toISOString());
+        const sessionKm = session.totalKm || 0;
+
+        return {
+            // Session info
+            session,
+            sessionDuration,
+            sessionKm,
+
+            // Ride statistics
+            totalRides,
+            totalEarnings,
+            totalProfit,
+            averageFare,
+            averageProfit,
+            bestRide,
+            worstRide,
+
+            // Distance & Time
+            totalKm,
+            averageDistance,
+            totalTimeMinutes,
+            averageDuration,
+
+            // Efficiency metrics
+            averageProfitPerKm,
+            averageProfitPerMin,
+            totalFuelAllocation,
+
+            // Expense statistics
+            totalExpenses,
+            expensesByCategory,
+            mostExpensiveCategory,
+
+            // Financial summary
+            grossEarnings,
+            netProfit,
+            profitMargin
+        };
+    };
+
     const value = {
         // State
         accounts,
-        businessDays,
+        sessions,
         rides,
         fuelTransfers,
         expenses,
         activeRide,
-        currentBusinessDay,
+        currentSession,
         pendingFuelTransfer,
         loading,
 
         // Actions
         updateAccountBalance,
-        startBusinessDay,
-        endBusinessDay,
+        startSession,
+        endSession,
         startRide,
         endRide,
         deleteRide,
@@ -629,6 +748,7 @@ export const AppProvider = ({ children }) => {
         deleteExpense,
         transferBetweenAccounts,
         transferToFuelAccount,
+        resetAllData,
 
         // Utilities
         getCombinedBalance,
@@ -637,6 +757,9 @@ export const AppProvider = ({ children }) => {
         getDateRides,
         getDateExpenses,
         getDateStats,
+        getSessionRides,
+        getSessionExpenses,
+        getSessionStats,
         calculateDuration,
         formatCurrency,
         formatTime,

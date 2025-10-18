@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 const RideTracker = () => {
     const {
         activeRide,
-        currentBusinessDay,
+        currentSession,
         startRide,
         endRide,
         deleteRide,
@@ -31,8 +31,8 @@ const RideTracker = () => {
     const [showForm, setShowForm] = useState(false);
 
     const handleStartRide = async () => {
-        if (!currentBusinessDay) {
-            alert('Please start a business day first');
+        if (!currentSession) {
+            alert('Please start a session first');
             return;
         }
         try {

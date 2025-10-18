@@ -1,10 +1,10 @@
 // IndexedDB utility for CabStats
 const DB_NAME = 'CabStatsDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
     ACCOUNTS: 'accounts',
-    BUSINESS_DAYS: 'businessDays',
+    SESSIONS: 'sessions',
     RIDES: 'rides',
     FUEL_TRANSFERS: 'fuelTransfers',
     EXPENSES: 'expenses',
@@ -35,18 +35,24 @@ class Database {
                     accountsStore.createIndex('name', 'name', { unique: true });
                 }
 
-                // Create business days store
-                if (!db.objectStoreNames.contains(STORES.BUSINESS_DAYS)) {
-                    const businessDaysStore = db.createObjectStore(STORES.BUSINESS_DAYS, { keyPath: 'id', autoIncrement: true });
-                    businessDaysStore.createIndex('status', 'status');
-                    businessDaysStore.createIndex('createdAt', 'createdAt');
+                // Create sessions store
+                if (!db.objectStoreNames.contains(STORES.SESSIONS)) {
+                    const sessionsStore = db.createObjectStore(STORES.SESSIONS, { keyPath: 'id', autoIncrement: true });
+                    sessionsStore.createIndex('status', 'status');
+                    sessionsStore.createIndex('createdAt', 'createdAt');
                 }
 
                 // Create rides store
                 if (!db.objectStoreNames.contains(STORES.RIDES)) {
                     const ridesStore = db.createObjectStore(STORES.RIDES, { keyPath: 'id', autoIncrement: true });
-                    ridesStore.createIndex('businessDayId', 'businessDayId');
+                    ridesStore.createIndex('sessionId', 'sessionId');
                     ridesStore.createIndex('createdAt', 'createdAt');
+                } else {
+                    // Add sessionId index to existing rides store
+                    const ridesStore = event.target.transaction.objectStore(STORES.RIDES);
+                    if (!ridesStore.indexNames.contains('sessionId')) {
+                        ridesStore.createIndex('sessionId', 'sessionId');
+                    }
                 }
 
                 // Create fuel transfers store
@@ -59,9 +65,15 @@ class Database {
                 // Create expenses store
                 if (!db.objectStoreNames.contains(STORES.EXPENSES)) {
                     const expensesStore = db.createObjectStore(STORES.EXPENSES, { keyPath: 'id', autoIncrement: true });
-                    expensesStore.createIndex('businessDayId', 'businessDayId');
+                    expensesStore.createIndex('sessionId', 'sessionId');
                     expensesStore.createIndex('category', 'category');
                     expensesStore.createIndex('createdAt', 'createdAt');
+                } else {
+                    // Add sessionId index to existing expenses store
+                    const expensesStore = event.target.transaction.objectStore(STORES.EXPENSES);
+                    if (!expensesStore.indexNames.contains('sessionId')) {
+                        expensesStore.createIndex('sessionId', 'sessionId');
+                    }
                 }
 
                 // Create active ride store (single record)

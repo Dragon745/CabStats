@@ -9,13 +9,14 @@ const Dashboard = () => {
         getTodaysRides,
         getTodaysProfit,
         formatCurrency,
-        currentBusinessDay,
-        startBusinessDay,
-        endBusinessDay
+        currentSession,
+        startSession,
+        endSession,
+        resetAllData
     } = useApp();
 
-    const [showStartDayForm, setShowStartDayForm] = useState(false);
-    const [showEndDayForm, setShowEndDayForm] = useState(false);
+    const [showStartSessionForm, setShowStartSessionForm] = useState(false);
+    const [showEndSessionForm, setShowEndSessionForm] = useState(false);
     const [startKm, setStartKm] = useState('');
     const [endKm, setEndKm] = useState('');
 
@@ -23,33 +24,56 @@ const Dashboard = () => {
     const todaysProfit = getTodaysProfit();
     const combinedBalance = getCombinedBalance();
 
-    const handleStartBusinessDay = async (e) => {
+    const handleStartSession = async (e) => {
         e.preventDefault();
         if (!startKm) {
             alert('Please enter starting km');
             return;
         }
         try {
-            await startBusinessDay(startKm);
+            await startSession(startKm);
             setStartKm('');
-            setShowStartDayForm(false);
+            setShowStartSessionForm(false);
         } catch (error) {
-            alert('Failed to start business day: ' + error.message);
+            alert('Failed to start session: ' + error.message);
         }
     };
 
-    const handleEndBusinessDay = async (e) => {
+    const handleEndSession = async (e) => {
         e.preventDefault();
         if (!endKm) {
             alert('Please enter ending km');
             return;
         }
         try {
-            await endBusinessDay(endKm);
+            await endSession(endKm);
             setEndKm('');
-            setShowEndDayForm(false);
+            setShowEndSessionForm(false);
         } catch (error) {
-            alert('Failed to end business day: ' + error.message);
+            alert('Failed to end session: ' + error.message);
+        }
+    };
+
+    const handleResetData = async () => {
+        const confirmed = window.confirm(
+            '⚠️ WARNING: This will permanently delete ALL data including:\n\n' +
+            '• All sessions\n' +
+            '• All rides\n' +
+            '• All expenses\n' +
+            '• All fuel transfers\n' +
+            '• Reset all account balances to ₹0\n' +
+            '• Any active session or ride\n\n' +
+            'This action CANNOT be undone!\n\n' +
+            'Are you absolutely sure you want to reset all data?'
+        );
+
+        if (confirmed) {
+            try {
+                await resetAllData();
+                alert('✅ All data has been reset successfully!');
+            } catch (error) {
+                alert('Failed to reset data: ' + error.message);
+            }
         }
     };
 
@@ -83,28 +107,28 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Business Day Status */}
+            {/* Session Status */}
             <div className="bg-white rounded-lg shadow-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Business Day</h3>
-                {currentBusinessDay ? (
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Session</h3>
+                {currentSession ? (
                     <div className="space-y-3">
                         <div className="bg-green-100 border border-green-300 rounded-lg p-3">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="text-green-800 font-semibold">Active Business Day</div>
+                                    <div className="text-green-800 font-semibold">Active Session</div>
                                     <div className="text-green-600 text-sm">
-                                        Started: {new Date(currentBusinessDay.startTime).toLocaleTimeString()}
+                                        Started: {new Date(currentSession.startTime).toLocaleTimeString()}
                                     </div>
                                     <div className="text-green-600 text-sm">
-                                        Starting KM: {currentBusinessDay.startKm}
+                                        Starting KM: {currentSession.startKm}
                                     </div>
                                 </div>
                                 <span className="text-2xl">🚗</span>
                             </div>
                         </div>
 
-                        {showEndDayForm ? (
-                            <form onSubmit={handleEndBusinessDay} className="space-y-3">
+                        {showEndSessionForm ? (
+                            <form onSubmit={handleEndSession} className="space-y-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Ending KM
@@ -122,7 +146,7 @@ const Dashboard = () => {
                                 <div className="flex space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => setShowEndDayForm(false)}
+                                        onClick={() => setShowEndSessionForm(false)}
                                         className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
                                     >
                                         Cancel
@@ -131,16 +155,16 @@ const Dashboard = () => {
                                         type="submit"
                                         className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold"
                                     >
-                                        End Day
+                                        End Session
                                     </button>
                                 </div>
                             </form>
                         ) : (
                             <button
-                                onClick={() => setShowEndDayForm(true)}
+                                onClick={() => setShowEndSessionForm(true)}
                                 className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold"
                             >
-                                End Business Day
+                                End Session
                             </button>
                         )}
                     </div>
@@ -148,12 +172,12 @@ const Dashboard = () => {
                     <div className="space-y-3">
                         <div className="bg-gray-100 border border-gray-300 rounded-lg p-3">
                             <div className="text-center text-gray-600">
-                                No active business day
+                                No active session
                             </div>
                         </div>
 
-                        {showStartDayForm ? (
-                            <form onSubmit={handleStartBusinessDay} className="space-y-3">
+                        {showStartSessionForm ? (
+                            <form onSubmit={handleStartSession} className="space-y-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Starting KM
@@ -171,7 +195,7 @@ const Dashboard = () => {
                                 <div className="flex space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => setShowStartDayForm(false)}
+                                        onClick={() => setShowStartSessionForm(false)}
                                         className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
                                     >
                                         Cancel
@@ -180,16 +204,16 @@ const Dashboard = () => {
                                         type="submit"
                                         className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-semibold"
                                     >
-                                        Start Day
+                                        Start Session
                                     </button>
                                 </div>
                             </form>
                         ) : (
                             <button
-                                onClick={() => setShowStartDayForm(true)}
+                                onClick={() => setShowStartSessionForm(true)}
                                 className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold"
                             >
-                                Start Business Day
+                                Start Session
                             </button>
                         )}
                     </div>
@@ -240,6 +264,20 @@ const Dashboard = () => {
                         <div className="text-sm text-gray-600">Profit</div>
                     </div>
                 </div>
+            </div>
+
+            {/* Reset Data Button */}
+            <div className="bg-white rounded-lg shadow-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">⚙️ Data Management</h3>
+                <button
+                    onClick={handleResetData}
+                    className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                >
+                    🗑️ Reset All Data
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                    This will permanently delete all data and reset account balances
+                </p>
             </div>
         </div>
     );

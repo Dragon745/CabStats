@@ -2,6 +2,101 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-10-18 18:35:22
+
+### Added
+
+- **Reset All Data Button**:
+  - Located in Dashboard for easy access
+  - Permanently deletes all sessions, rides, expenses, and fuel transfers
+  - Resets all account balances to ₹0
+  - Deletes any active session or ride without ending
+  - Strong warning confirmation dialog before reset
+  - Cannot be undone - complete data wipe
+
+### Fixed
+
+- **Code Cleanup**: Removed unused `currentSession` variable from ExpenseTracker component
+- **ESLint Warnings**: Eliminated all build warnings for cleaner development experience
+
+### Major Changes
+
+- **Session System Migration**: Complete replacement of business day system with flexible session-based system
+- **Flexible Session Management**:
+  - Sessions can span multiple days (no time limit)
+  - Multiple sessions can exist within a single day
+  - Sessions are started/ended by recording kilometers
+  - Each session gets an automatic name (e.g., "Session #1")
+- **Enhanced Statistics View**:
+  - Dual view modes: "By Date" and "By Session"
+  - Date mode: Shows all rides/expenses for a specific date (existing behavior)
+  - Session mode: Shows all rides/expenses for a specific session with session details
+  - Session selector with session information (start/end dates, duration, KM range)
+- **Improved Data Structure**:
+  - New `SESSIONS` database store alongside existing `BUSINESS_DAYS` for backward compatibility
+  - Rides and expenses now link to sessions via `sessionId`
+  - Maintained backward compatibility with existing `businessDayId` references
+
+### Added
+
+- **Session Management Functions**:
+  - `startSession(startKm)` - Start new session with immediate KM recording
+  - `endSession(endKm)` - End session with ending KM recording
+  - `getSessionRides(sessionId)` - Get all rides for a specific session
+  - `getSessionExpenses(sessionId)` - Get all expenses for a specific session
+  - `getSessionStats(sessionId)` - Calculate comprehensive statistics for a session
+- **Session-Specific Statistics**:
+  - Session duration and date range
+  - Total KM traveled (endKm - startKm)
+  - All ride and expense statistics within the session
+  - Session information display with start/end times and KM range
+- **Enhanced Stats Component**:
+  - View mode toggle between "By Date" and "By Session"
+  - Session selector dropdown with session details
+  - Session information card showing session-specific metrics
+  - Maintained existing date-based statistics functionality
+
+### Updated
+
+- **Dashboard Component**:
+  - Replaced "Business Day" section with "Session" section
+  - Updated all UI text and functionality to use sessions
+  - Maintained same user experience with session terminology
+- **RideTracker Component**:
+  - Updated validation to require active session instead of business day
+  - Rides now link to current session
+- **ExpenseTracker Component**:
+  - Expenses now link to current session
+  - Maintained all existing functionality
+- **Database Schema**:
+  - Added `SESSIONS` store to IndexedDB
+  - Added `sessionId` indexes to rides and expenses stores
+  - Updated database version to v3 for migration
+  - Maintained backward compatibility with existing data
+
+### Technical Changes
+
+- **Database Migration**:
+  - IndexedDB version updated to v3
+  - New `SESSIONS` store with session schema
+  - Added `sessionId` indexes to existing stores
+  - Backward compatibility maintained for existing data
+- **Context Updates**:
+  - Added session state management (`sessions`, `currentSession`)
+  - Added session utility functions
+  - Maintained backward compatibility with business day functions
+- **Data Structure**:
+  - Sessions include: `name`, `startTime`, `endTime`, `startKm`, `endKm`, `totalKm`, `status`
+  - Removed fuel expense tracking from session records (calculated on-demand)
+  - Rides and expenses link to sessions via `sessionId`
+
+### Backward Compatibility
+
+- **Existing Data Preserved**: All existing business day data remains intact
+- **Gradual Migration**: New data uses session system while old data continues to work
+- **No Data Loss**: Existing rides and expenses with `businessDayId` continue to function
+- **Dual Support**: System supports both old business day references and new session references
+
 ## [2.2.0] - 2025-10-17 00:29:11
 
 ### Added
