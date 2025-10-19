@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { database, STORES, initializeDefaultAccounts } from '../utils/db';
 import {
+    calculateTip,
     calculateProfit,
     calculateProfitPerKm,
     calculateProfitPerMin,
@@ -353,6 +354,7 @@ export const AppProvider = ({ children }) => {
 
             // Convert all inputs to numbers for calculations
             const fare = parseFloat(rideData.fare) || 0;
+            const amountReceived = parseFloat(rideData.amountReceived) || fare; // Default to fare if not provided
             const airportFee = parseFloat(rideData.airportFee) || 0;
             const platformFee = parseFloat(rideData.platformFee) || 0;
             const tolls = parseFloat(rideData.tolls) || 0;
@@ -362,6 +364,9 @@ export const AppProvider = ({ children }) => {
             // Validate essential data
             if (fare <= 0) {
                 throw new Error('Fare must be greater than 0');
+            }
+            if (amountReceived <= 0) {
+                throw new Error('Amount received must be greater than 0');
             }
             if (km <= 0) {
                 throw new Error('Distance must be greater than 0');
@@ -373,12 +378,15 @@ export const AppProvider = ({ children }) => {
                 throw new Error('Payment method is required');
             }
 
-            const profit = calculateProfit(fare, {
+            const fees = {
                 airportFee,
                 platformFee,
                 tolls,
                 otherFees
-            });
+            };
+
+            const tip = calculateTip(amountReceived, fare, fees);
+            const profit = calculateProfit(amountReceived, fees);
             const profitPerKm = calculateProfitPerKm(profit, km);
             const profitPerMin = calculateProfitPerMin(profit, duration);
             const fuelAllocation = calculateFuelAllocation(profit);
@@ -388,6 +396,8 @@ export const AppProvider = ({ children }) => {
                 endTime,
                 km,
                 fare,
+                amountReceived,
+                tip,
                 airportFee,
                 platformFee,
                 tolls,
@@ -412,7 +422,7 @@ export const AppProvider = ({ children }) => {
             if (!account) {
                 throw new Error(`Account '${accountName}' not found`);
             }
-            await updateAccountBalance(account.id, fare);
+            await updateAccountBalance(account.id, amountReceived);
 
             // Add fuel allocation to pending transfers
             if (fuelAllocation > 0) {
@@ -523,11 +533,11 @@ export const AppProvider = ({ children }) => {
                 throw new Error('Ride not found');
             }
 
-            // Reverse account balance (subtract the fare that was added)
+            // Reverse account balance (subtract the amount received that was added)
             const accountName = ride.paymentMethod;
             const account = accounts.find(acc => acc.name === accountName);
             if (account) {
-                await updateAccountBalance(account.id, -ride.fare);
+                await updateAccountBalance(account.id, -(ride.amountReceived || ride.fare));
             }
 
             // Reverse fuel allocation if it was transferred

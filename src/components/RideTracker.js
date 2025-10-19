@@ -38,6 +38,7 @@ const RideTracker = () => {
     const [rideData, setRideData] = useState({
         km: '',
         fare: '',
+        amountReceived: '',
         airportFee: '',
         platformFee: '',
         tolls: '',
@@ -87,14 +88,15 @@ const RideTracker = () => {
         e.preventDefault();
 
         // Validate required fields
-        if (!rideData.km || !rideData.fare || !rideData.rideType || !rideData.paymentMethod) {
-            alert('Please fill in all required fields (Distance, Fare, Ride Type, Payment Method)');
+        if (!rideData.km || !rideData.fare || !rideData.amountReceived || !rideData.rideType || !rideData.paymentMethod) {
+            alert('Please fill in all required fields (Distance, Fare, Amount Received, Ride Type, Payment Method)');
             return;
         }
 
         // Validate numeric fields
         const km = parseFloat(rideData.km);
         const fare = parseFloat(rideData.fare);
+        const amountReceived = parseFloat(rideData.amountReceived);
 
         if (isNaN(km) || km <= 0) {
             alert('Please enter a valid distance (km)');
@@ -106,12 +108,18 @@ const RideTracker = () => {
             return;
         }
 
+        if (isNaN(amountReceived) || amountReceived <= 0) {
+            alert('Please enter a valid amount received');
+            return;
+        }
+
         setIsLoading(true);
         try {
             await endRide(rideData);
             setRideData({
                 km: '',
                 fare: '',
+                amountReceived: '',
                 airportFee: '',
                 platformFee: '',
                 tolls: '',
@@ -245,6 +253,37 @@ const RideTracker = () => {
                                         placeholder="Enter fare"
                                         required
                                     />
+                                </div>
+                            </div>
+
+                            {/* Amount Received Field */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaMoneyBillWave className="w-4 h-4 text-purple-500" />
+                                            <span>Amount Received (₹) *</span>
+                                        </div>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        name="amountReceived"
+                                        value={rideData.amountReceived}
+                                        onChange={handleInputChange}
+                                        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 text-lg font-medium"
+                                        placeholder="Enter total amount received (fare + tip)"
+                                        required
+                                    />
+                                    <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-xl">
+                                        <div className="flex items-start space-x-2">
+                                            <FaInfoCircle className="w-4 h-4 text-purple-600 mt-0.5" />
+                                            <p className="text-sm text-purple-800">
+                                                <strong>Tip Calculation:</strong> Amount Received - Fare - Fees = Tip<br />
+                                                <strong>Profit:</strong> Amount Received - Fees (excluding fare)
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -568,23 +607,32 @@ const RideTracker = () => {
                                             )}
 
                                             {/* Metrics Row */}
-                                            <div className="grid grid-cols-3 gap-4 mb-4">
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
                                                 <div className="text-center bg-blue-50 rounded-xl p-3 border border-blue-200">
                                                     <FaMoneyBillWave className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                                                     <div className="text-lg font-bold text-blue-700">{formatCurrency(ride.fare)}</div>
                                                     <div className="text-xs text-blue-600 font-medium">Fare</div>
                                                 </div>
-                                                <div className="text-center bg-green-50 rounded-xl p-3 border border-green-200">
-                                                    <FaTachometerAlt className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                                                    <div className="text-lg font-bold text-green-700">{ride.km}</div>
-                                                    <div className="text-xs text-green-600 font-medium">km Distance</div>
-                                                </div>
                                                 <div className="text-center bg-purple-50 rounded-xl p-3 border border-purple-200">
-                                                    <FaClock className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-                                                    <div className="text-lg font-bold text-purple-700">
-                                                        {Math.floor((new Date(ride.endTime) - new Date(ride.startTime)) / (1000 * 60))}m
+                                                    <FaMoneyBillWave className="w-5 h-5 text-purple-600 mx-auto mb-1" />
+                                                    <div className="text-lg font-bold text-purple-700">{formatCurrency(ride.amountReceived || ride.fare)}</div>
+                                                    <div className="text-xs text-purple-600 font-medium">Amount Received</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Tip and Distance Row */}
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div className="text-center bg-green-50 rounded-xl p-3 border border-green-200">
+                                                    <FaMoneyBillWave className="w-5 h-5 text-green-600 mx-auto mb-1" />
+                                                    <div className={`text-lg font-bold ${(ride.tip || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                                        {formatCurrency(ride.tip || 0)}
                                                     </div>
-                                                    <div className="text-xs text-purple-600 font-medium">Duration</div>
+                                                    <div className="text-xs text-green-600 font-medium">Tip</div>
+                                                </div>
+                                                <div className="text-center bg-orange-50 rounded-xl p-3 border border-orange-200">
+                                                    <FaTachometerAlt className="w-5 h-5 text-orange-600 mx-auto mb-1" />
+                                                    <div className="text-lg font-bold text-orange-700">{ride.km}</div>
+                                                    <div className="text-xs text-orange-600 font-medium">km Distance</div>
                                                 </div>
                                             </div>
 
@@ -632,6 +680,13 @@ const RideTracker = () => {
                                                     <div className="text-sm text-gray-500 font-medium">Profit/km</div>
                                                     <div className={`text-lg font-bold ${ride.profitPerKm >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                         {formatCurrency(ride.profitPerKm)}
+                                                    </div>
+                                                </div>
+                                                <div className="w-px h-8 bg-gray-200"></div>
+                                                <div className="text-center flex-1">
+                                                    <div className="text-sm text-gray-500 font-medium">Profit/min</div>
+                                                    <div className={`text-lg font-bold ${ride.profitPerMin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {formatCurrency(ride.profitPerMin)}
                                                     </div>
                                                 </div>
                                                 <div className="w-px h-8 bg-gray-200"></div>

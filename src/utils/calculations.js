@@ -1,7 +1,12 @@
 // Calculation utilities for CabStats
-export const calculateProfit = (fare, fees) => {
+export const calculateTip = (amountReceived, fare, fees) => {
     const totalFees = fees.airportFee + fees.platformFee + fees.tolls + fees.otherFees;
-    return fare - totalFees;
+    return amountReceived - fare - totalFees;
+};
+
+export const calculateProfit = (amountReceived, fees) => {
+    const totalFees = fees.airportFee + fees.platformFee + fees.tolls + fees.otherFees;
+    return amountReceived - totalFees;
 };
 
 export const calculateProfitPerKm = (profit, km) => {

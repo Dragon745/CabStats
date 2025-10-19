@@ -2,9 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
 ## [5.0.0] - 2025-10-19 19:05:11
 
 ### Added
+
+- **Tip Calculation System**:
+
+  - **NEW**: Advanced tip calculation system for accurate passenger generosity tracking
+  - **NEW**: "Amount Received" field in ride completion form for total payment tracking
+  - **NEW**: Automatic tip calculation: Amount Received - Fare - Fees = Tip
+  - **NEW**: Updated profit calculation: Amount Received - Fees (excluding fare)
+  - **NEW**: Enhanced ride history display showing tip amounts and profit per minute
+  - **NEW**: Visual tip indicators with color coding (green for positive, red for negative)
+  - **NEW**: Comprehensive ride metrics including fare, amount received, tip, and profit
+  - **NEW**: Updated account balance tracking to use amount received instead of fare
+  - **NEW**: Improved profit per minute and profit per km calculations based on actual earnings
+  - **NEW**: Professional form UI with helpful tip calculation explanations
+  - **NEW**: Enhanced ride history cards with detailed financial breakdown
+  - **NEW**: Real-time tip calculation with instant feedback
+  - Enhanced financial tracking with accurate tip and profit analysis
+  - Improved driver earnings visibility and passenger generosity insights
 
 - **Expense Filtering System**:
   - **NEW**: Advanced filtering system for expense history with category and date range filters
@@ -35,33 +54,6 @@ All notable changes to this project will be documented in this file.
   - **NEW**: Better performance with fewer DOM updates and optimized rendering
   - Enhanced user experience with faster, more responsive balance updates
   - Improved animation smoothness and reduced visual lag
-
-- **Rides Section Card Layout Enhancement**:
-  - **NEW**: Professional mobile-first card redesign with improved spacing
-  - **NEW**: Enhanced visual hierarchy with clear section separation
-  - **NEW**: Better typography and information organization
-  - **NEW**: Improved location display with proper spacing and visual indicators
-  - **NEW**: Enhanced metrics cards with better borders and gradients
-  - **NEW**: Professional fees breakdown section with glassmorphism styling
-  - **NEW**: Cleaner bottom metrics layout with visual separators
-  - **NEW**: Increased card spacing from 4 to 6 for better mobile readability
-  - **NEW**: Enhanced glassmorphism effects with better backdrop blur
-  - **NEW**: Improved hover effects with subtle scale transforms
-  - **NEW**: Better color coordination and visual consistency
-  - **NEW**: Transaction-style horizontal layout with proper alignment
-  - **NEW**: Compact design with better information density
-  - **NEW**: Professional card styling with clean borders and shadows
-  - **NEW**: Optimized spacing and alignment for mobile devices
-  - **NEW**: Fixed account balances section with clean 2x2 grid layout
-  - **NEW**: Improved account balance cards with proper spacing and typography
-  - **NEW**: Enhanced visual hierarchy for account information display
-  - **NEW**: Redesigned expense history cards with professional transaction-style layout
-  - **NEW**: Improved expense card visual hierarchy with clear row separation
-  - **NEW**: Enhanced category badges with gradient backgrounds and professional icons
-  - **NEW**: Better spacing and typography for expense information display
-  - **NEW**: Cleaner expense card design with proper alignment and visual consistency
-  - Enhanced mobile user experience with professional card design
-  - Reduced visual clutter and improved information accessibility
 
 ## [4.0.0] - 2025-10-19 15:22:37
 
