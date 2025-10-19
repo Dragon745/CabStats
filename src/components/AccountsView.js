@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import {
+    FaWallet, FaGasPump, FaMoneyBillWave, FaMobile,
+    FaExchangeAlt, FaEdit, FaCheck, FaTimes,
+    FaSpinner, FaChartLine, FaArrowRight,
+    FaArrowUp, FaArrowDown, FaExclamationTriangle,
+    FaInfoCircle, FaCheckCircle, FaClock
+} from 'react-icons/fa';
+import { MdAccountBalance, MdTrendingUp } from 'react-icons/md';
 
 const AccountsView = () => {
     const {
         accounts,
+        fuelTransfers,
+        accountTransfers,
         updateAccountBalance,
         formatCurrency,
         formatDate,
+        formatTime,
         pendingFuelTransfer,
         transferToFuelAccount,
         transferBetweenAccounts
@@ -24,24 +35,47 @@ const AccountsView = () => {
     const [accountTransferFrom, setAccountTransferFrom] = useState('Main Account');
     const [accountTransferTo, setAccountTransferTo] = useState('Cash Account');
     const [accountTransferAmount, setAccountTransferAmount] = useState('');
+    const [animatedBalance, setAnimatedBalance] = useState(0);
+
+    // Animated balance counter effect
+    useEffect(() => {
+        const combinedBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance || 0), 0);
+        const targetBalance = combinedBalance;
+        const duration = 1000;
+        const steps = 60;
+        const increment = (targetBalance - animatedBalance) / steps;
+        let step = 0;
+
+        const timer = setInterval(() => {
+            step++;
+            setAnimatedBalance(prev => prev + increment);
+
+            if (step >= steps) {
+                setAnimatedBalance(targetBalance);
+                clearInterval(timer);
+            }
+        }, duration / steps);
+
+        return () => clearInterval(timer);
+    }, [accounts, animatedBalance]);
 
     const getAccountIcon = (accountName) => {
         switch (accountName) {
-            case 'Main Account': return '💰';
-            case 'Fuel Account': return '⛽';
-            case 'Cash Account': return '💵';
-            case 'Platform Account': return '📱';
-            default: return '💳';
+            case 'Main Account': return FaWallet;
+            case 'Fuel Account': return FaGasPump;
+            case 'Cash Account': return FaMoneyBillWave;
+            case 'Platform Account': return FaMobile;
+            default: return FaWallet;
         }
     };
 
     const getAccountColor = (accountName) => {
         switch (accountName) {
-            case 'Main Account': return 'bg-green-500';
-            case 'Fuel Account': return 'bg-blue-500';
-            case 'Cash Account': return 'bg-yellow-500';
-            case 'Platform Account': return 'bg-purple-500';
-            default: return 'bg-gray-500';
+            case 'Main Account': return 'from-green-500 to-green-600';
+            case 'Fuel Account': return 'from-blue-500 to-blue-600';
+            case 'Cash Account': return 'from-yellow-500 to-yellow-600';
+            case 'Platform Account': return 'from-purple-500 to-purple-600';
+            default: return 'from-gray-500 to-gray-600';
         }
     };
 
@@ -166,110 +200,177 @@ const AccountsView = () => {
     };
 
     return (
-        <div className="p-4">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Account Management</h2>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 space-y-6 pb-20">
+            {/* Hero Combined Balance Card */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-2xl shadow-2xl p-8 text-white">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                </div>
 
-                {/* Account Cards */}
-                <div className="grid grid-cols-1 gap-4 mb-6">
-                    {accounts.map((account) => (
-                        <div key={account.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                                <MdAccountBalance className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold">Total Balance</h2>
+                                <p className="text-sm opacity-80">All Accounts Combined</p>
+                            </div>
+                        </div>
+
+                        {animatedBalance >= 0 && (
+                            <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                                <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                                <span className="text-xs font-medium">Active</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <div className={`text-5xl font-bold mb-2 ${animatedBalance >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                {formatCurrency(animatedBalance)}
+                            </div>
+                            <div className="flex items-center space-x-2 text-sm opacity-80">
+                                <FaChartLine className="w-4 h-4" />
+                                <span>Updated in real-time</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                            <FaArrowUp className="w-3 h-3" />
+                            <span className="text-xs font-medium">Live</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Account Cards Grid */}
+            <div className="grid grid-cols-2 gap-4">
+                {accounts.map((account, index) => {
+                    const IconComponent = getAccountIcon(account.name);
+                    const gradientClass = getAccountColor(account.name);
+
+                    return (
+                        <div
+                            key={account.id}
+                            className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
                             <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-3">
-                                    <span className="text-2xl">{getAccountIcon(account.name)}</span>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">{account.name}</h3>
-                                        <p className="text-sm text-gray-500">
-                                            Last updated: {formatDate(account.updatedAt)}
-                                        </p>
-                                    </div>
+                                <div className={`p-3 rounded-xl bg-gradient-to-r ${gradientClass} text-white shadow-lg`}>
+                                    <IconComponent className="w-6 h-6" />
                                 </div>
-                                <div className={`w-4 h-4 rounded-full ${getAccountColor(account.name)}`}></div>
+                                <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${gradientClass} animate-pulse`}></div>
                             </div>
 
-                            <div className="flex justify-between items-center">
-                                <div className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(account.balance)}
+                            <h3 className="text-sm font-medium text-gray-600 mb-2">{account.name}</h3>
+                            <div className={`text-xl font-bold mb-3 ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(account.balance)}
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                    <FaClock className="w-3 h-3" />
+                                    <span>{formatDate(account.updatedAt)}</span>
                                 </div>
                                 <button
                                     onClick={() => {
                                         setSelectedAccount(account);
                                         setShowAdjustmentForm(true);
                                     }}
-                                    className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200"
+                                    className="p-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 flex items-center justify-center"
+                                    title="Adjust Balance"
                                 >
-                                    Adjust
+                                    <FaEdit className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
-                    ))}
-                </div>
+                    );
+                })}
+            </div>
 
-                {/* Combined Balance */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="text-center">
-                        <div className="text-sm text-gray-600 mb-1">Combined Balance</div>
-                        <div className={`text-3xl font-bold ${accounts.reduce((sum, acc) => sum + acc.balance, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(accounts.reduce((sum, acc) => sum + acc.balance, 0))}
-                        </div>
+            {/* Account Transfer Section */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+                        <FaExchangeAlt className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-800">Transfer Between Accounts</h3>
+                        <p className="text-sm text-gray-600">Move money between your accounts</p>
                     </div>
                 </div>
 
-                {/* Account Transfer Section */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-3">Transfer Between Accounts</h3>
+                <button
+                    onClick={() => setShowAccountTransferForm(!showAccountTransferForm)}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-3 shadow-lg transform hover:scale-[1.02]"
+                >
+                    <FaExchangeAlt className="w-5 h-5" />
+                    <span>Transfer Money Between Accounts</span>
+                </button>
 
-                    <button
-                        onClick={() => setShowAccountTransferForm(!showAccountTransferForm)}
-                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold mb-4"
-                    >
-                        Transfer Money Between Accounts
-                    </button>
-
-                    {/* Account Transfer Form */}
-                    {showAccountTransferForm && (
-                        <form onSubmit={handleAccountTransfer} className="space-y-4">
+                {/* Account Transfer Form */}
+                {showAccountTransferForm && (
+                    <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                        <form onSubmit={handleAccountTransfer} className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                                        From Account
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaArrowDown className="w-4 h-4 text-gray-500" />
+                                            <span>From Account</span>
+                                        </div>
                                     </label>
                                     <select
                                         value={accountTransferFrom}
                                         onChange={(e) => setAccountTransferFrom(e.target.value)}
-                                        className="w-full p-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                     >
                                         {accounts.map(account => (
-                                            <option key={account.id} value={account.name}>{account.name}</option>
+                                            <option key={account.id} value={account.name}>
+                                                {account.name} - {formatCurrency(account.balance)}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-blue-700 mb-1">
-                                        To Account
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaArrowUp className="w-4 h-4 text-gray-500" />
+                                            <span>To Account</span>
+                                        </div>
                                     </label>
                                     <select
                                         value={accountTransferTo}
                                         onChange={(e) => setAccountTransferTo(e.target.value)}
-                                        className="w-full p-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                     >
                                         {accounts.map(account => (
-                                            <option key={account.id} value={account.name}>{account.name}</option>
+                                            <option key={account.id} value={account.name}>
+                                                {account.name} - {formatCurrency(account.balance)}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-blue-700 mb-1">
-                                    Transfer Amount (₹)
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <div className="flex items-center space-x-2">
+                                        <FaMoneyBillWave className="w-4 h-4 text-gray-500" />
+                                        <span>Transfer Amount (₹)</span>
+                                    </div>
                                 </label>
                                 <input
                                     type="number"
                                     step="0.01"
                                     value={accountTransferAmount}
                                     onChange={(e) => setAccountTransferAmount(e.target.value)}
-                                    className="w-full p-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium"
                                     placeholder="Enter amount"
                                     required
                                 />
@@ -282,155 +383,196 @@ const AccountsView = () => {
                                         setShowAccountTransferForm(false);
                                         setAccountTransferAmount('');
                                     }}
-                                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
+                                    className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
                                 >
-                                    Cancel
+                                    <FaTimes className="w-4 h-4" />
+                                    <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
                                 >
-                                    {loading ? 'Processing...' : 'Transfer'}
+                                    {loading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCheck className="w-4 h-4" />}
+                                    <span>Transfer</span>
                                 </button>
                             </div>
                         </form>
-                    )}
+                    </div>
+                )}
 
-                    {/* Info */}
-                    <div className="bg-blue-100 border border-blue-200 rounded-lg p-3 mt-4">
-                        <div className="text-sm text-blue-800">
-                            <strong>Note:</strong> Transfer money between any of your accounts.
-                            This is useful for moving funds between Main Account, Cash Account, Platform Account, and Fuel Account.
+            </div>
+
+            {/* Fuel Transfer Section */}
+            {pendingFuelTransfer > 0 && (
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100">
+                    <div className="flex items-center space-x-3 mb-6">
+                        <div className="p-3 bg-gradient-to-r from-orange-500 to-amber-600 rounded-xl">
+                            <FaGasPump className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-800">Fuel Transfer</h3>
+                            <p className="text-sm text-gray-600">Transfer pending fuel allocation</p>
                         </div>
                     </div>
-                </div>
 
-                {/* Fuel Transfer Section */}
-                {pendingFuelTransfer > 0 && (
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-                        <h3 className="text-lg font-semibold text-orange-800 mb-3">Fuel Transfer</h3>
-
-                        <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 mb-4">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-orange-800 mb-1">
-                                    {formatCurrency(pendingFuelTransfer)}
-                                </div>
-                                <div className="text-orange-600 text-sm">Pending Transfer to Fuel Account</div>
-                            </div>
+                    {/* Pending Amount Alert */}
+                    <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 rounded-xl shadow-lg p-6 text-white mb-6">
+                        <div className="absolute inset-0 opacity-20">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -translate-y-10 translate-x-10"></div>
+                            <div className="absolute bottom-0 left-0 w-16 h-16 bg-white rounded-full translate-y-8 -translate-x-8"></div>
                         </div>
 
-                        {/* Account Balances */}
-                        <div className="space-y-2 mb-4">
-                            <div className="bg-gray-100 rounded-lg p-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-700">Main Account Balance:</span>
-                                    <span className={`font-semibold ${accounts.find(acc => acc.name === 'Main Account')?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatCurrency(accounts.find(acc => acc.name === 'Main Account')?.balance || 0)}
-                                    </span>
-                                </div>
+                        <div className="relative z-10 text-center">
+                            <div className="flex items-center justify-center space-x-2 mb-2">
+                                <FaExclamationTriangle className="w-6 h-6" />
+                                <span className="text-lg font-semibold">Pending Transfer</span>
                             </div>
-                            <div className="bg-gray-100 rounded-lg p-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-700">Cash Account Balance:</span>
-                                    <span className={`font-semibold ${accounts.find(acc => acc.name === 'Cash Account')?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatCurrency(accounts.find(acc => acc.name === 'Cash Account')?.balance || 0)}
-                                    </span>
-                                </div>
+                            <div className="text-3xl font-bold mb-2 animate-pulse">
+                                {formatCurrency(pendingFuelTransfer)}
+                            </div>
+                            <div className="text-sm opacity-90">To Fuel Account</div>
+                        </div>
+                    </div>
+
+                    {/* Account Balances Preview */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                            <div className="flex items-center space-x-2 mb-2">
+                                <FaWallet className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-800">Main Account</span>
+                            </div>
+                            <div className={`text-lg font-bold ${accounts.find(acc => acc.name === 'Main Account')?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(accounts.find(acc => acc.name === 'Main Account')?.balance || 0)}
                             </div>
                         </div>
-
-                        {/* Transfer Options */}
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => setShowTransferAllForm(!showTransferAllForm)}
-                                disabled={loading}
-                                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Processing...' : 'Transfer All'}
-                            </button>
-
-                            <button
-                                onClick={() => setShowFuelTransferForm(!showFuelTransferForm)}
-                                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold"
-                            >
-                                Transfer Partial Amount
-                            </button>
+                        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
+                            <div className="flex items-center space-x-2 mb-2">
+                                <FaMoneyBillWave className="w-4 h-4 text-yellow-600" />
+                                <span className="text-sm font-medium text-yellow-800">Cash Account</span>
+                            </div>
+                            <div className={`text-lg font-bold ${accounts.find(acc => acc.name === 'Cash Account')?.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(accounts.find(acc => acc.name === 'Cash Account')?.balance || 0)}
+                            </div>
                         </div>
+                    </div>
 
-                        {/* Transfer All Form */}
-                        {showTransferAllForm && (
-                            <form onSubmit={(e) => { e.preventDefault(); handleFuelTransferAll(); }} className="space-y-4 mt-4">
+                    {/* Transfer Options */}
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => setShowTransferAllForm(!showTransferAllForm)}
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center space-x-3 shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
+                        >
+                            <FaCheck className="w-5 h-5" />
+                            <span>{loading ? 'Processing...' : 'Transfer All'}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowFuelTransferForm(!showFuelTransferForm)}
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-3 shadow-lg transform hover:scale-[1.02]"
+                        >
+                            <FaEdit className="w-5 h-5" />
+                            <span>Transfer Partial Amount</span>
+                        </button>
+                    </div>
+
+                    {/* Transfer All Form */}
+                    {showTransferAllForm && (
+                        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <form onSubmit={(e) => { e.preventDefault(); handleFuelTransferAll(); }} className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-orange-700 mb-1">
-                                        Transfer From Account
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaArrowDown className="w-4 h-4 text-gray-500" />
+                                            <span>Transfer From Account</span>
+                                        </div>
                                     </label>
                                     <select
                                         value={fuelTransferFromAccount}
                                         onChange={(e) => setFuelTransferFromAccount(e.target.value)}
-                                        className="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
                                     >
-                                        <option value="Main Account">Main Account</option>
-                                        <option value="Cash Account">Cash Account</option>
+                                        <option value="Main Account">
+                                            Main Account - {formatCurrency(accounts.find(acc => acc.name === 'Main Account')?.balance || 0)}
+                                        </option>
+                                        <option value="Cash Account">
+                                            Cash Account - {formatCurrency(accounts.find(acc => acc.name === 'Cash Account')?.balance || 0)}
+                                        </option>
                                     </select>
                                 </div>
 
-                                <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">
+                                <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl p-4">
                                     <div className="text-center">
-                                        <div className="text-lg font-bold text-orange-800 mb-1">
-                                            {formatCurrency(pendingFuelTransfer)}
+                                        <div className="flex items-center justify-center space-x-2 mb-2">
+                                            <FaGasPump className="w-5 h-5 text-green-600" />
+                                            <span className="text-lg font-bold text-green-800">
+                                                {formatCurrency(pendingFuelTransfer)}
+                                            </span>
                                         </div>
-                                        <div className="text-orange-600 text-sm">Will be transferred to Fuel Account</div>
+                                        <div className="text-green-600 text-sm">Will be transferred to Fuel Account</div>
                                     </div>
                                 </div>
 
                                 <div className="flex space-x-3">
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setShowTransferAllForm(false);
-                                        }}
-                                        className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
+                                        onClick={() => setShowTransferAllForm(false)}
+                                        className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
                                     >
-                                        Cancel
+                                        <FaTimes className="w-4 h-4" />
+                                        <span>Cancel</span>
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
                                     >
-                                        {loading ? 'Processing...' : 'Transfer All'}
+                                        {loading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCheck className="w-4 h-4" />}
+                                        <span>Transfer All</span>
                                     </button>
                                 </div>
                             </form>
-                        )}
+                        </div>
+                    )}
 
-                        {/* Partial Transfer Form */}
-                        {showFuelTransferForm && (
-                            <form onSubmit={handleFuelTransferPartial} className="space-y-4 mt-4">
+                    {/* Partial Transfer Form */}
+                    {showFuelTransferForm && (
+                        <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                            <form onSubmit={handleFuelTransferPartial} className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-orange-700 mb-1">
-                                        Transfer From Account
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaArrowDown className="w-4 h-4 text-gray-500" />
+                                            <span>Transfer From Account</span>
+                                        </div>
                                     </label>
                                     <select
                                         value={fuelTransferFromAccount}
                                         onChange={(e) => setFuelTransferFromAccount(e.target.value)}
-                                        className="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                     >
-                                        <option value="Main Account">Main Account</option>
-                                        <option value="Cash Account">Cash Account</option>
+                                        <option value="Main Account">
+                                            Main Account - {formatCurrency(accounts.find(acc => acc.name === 'Main Account')?.balance || 0)}
+                                        </option>
+                                        <option value="Cash Account">
+                                            Cash Account - {formatCurrency(accounts.find(acc => acc.name === 'Cash Account')?.balance || 0)}
+                                        </option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-orange-700 mb-1">
-                                        Transfer Amount (₹)
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <FaMoneyBillWave className="w-4 h-4 text-gray-500" />
+                                            <span>Transfer Amount (₹)</span>
+                                        </div>
                                     </label>
                                     <input
                                         type="number"
                                         step="0.01"
                                         value={fuelTransferAmount}
                                         onChange={(e) => setFuelTransferAmount(e.target.value)}
-                                        className="w-full p-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium"
                                         placeholder="Enter amount"
                                         required
                                     />
@@ -443,90 +585,213 @@ const AccountsView = () => {
                                             setShowFuelTransferForm(false);
                                             setFuelTransferAmount('');
                                         }}
-                                        className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
+                                        className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
                                     >
-                                        Cancel
+                                        <FaTimes className="w-4 h-4" />
+                                        <span>Cancel</span>
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
                                     >
-                                        {loading ? 'Processing...' : 'Transfer'}
+                                        {loading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCheck className="w-4 h-4" />}
+                                        <span>Transfer</span>
                                     </button>
                                 </div>
                             </form>
-                        )}
+                        </div>
+                    )}
 
-                        {/* Info */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-                            <div className="text-sm text-blue-800">
-                                <strong>Note:</strong> Fuel transfers move money from Main Account or Cash Account to Fuel Account.
-                                Both "Transfer All" and "Transfer Partial" allow you to manually select the source account.
-                                This helps track fuel expenses separately from other earnings.
+                </div>
+            )}
+
+            {/* Balance Adjustment Modal */}
+            {showAdjustmentForm && selectedAccount && (
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100">
+                    <div className="flex items-center space-x-3 mb-6">
+                        <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+                            <FaEdit className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-800">Adjust Balance</h3>
+                            <p className="text-sm text-gray-600">{selectedAccount.name}</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleAdjustment} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <div className="flex items-center space-x-2">
+                                    <FaMoneyBillWave className="w-4 h-4 text-gray-500" />
+                                    <span>Adjustment Amount (₹)</span>
+                                </div>
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={adjustmentAmount}
+                                onChange={(e) => setAdjustmentAmount(e.target.value)}
+                                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium"
+                                placeholder="Enter amount (+ for credit, - for debit)"
+                                required
+                            />
+                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                                <div className="flex items-start space-x-2">
+                                    <FaInfoCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+                                    <p className="text-sm text-blue-800">
+                                        Use positive numbers to add money, negative to subtract
+                                    </p>
+                                </div>
                             </div>
+                        </div>
+
+                        <div className="flex space-x-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAdjustmentForm(false);
+                                    setSelectedAccount(null);
+                                    setAdjustmentAmount('');
+                                }}
+                                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
+                            >
+                                <FaTimes className="w-4 h-4" />
+                                <span>Cancel</span>
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
+                            >
+                                {loading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCheck className="w-4 h-4" />}
+                                <span>Update Balance</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Accounts History Section */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl">
+                        <FaChartLine className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-800">Transfer History</h3>
+                        <p className="text-sm text-gray-600">Account and fuel transfer records</p>
+                    </div>
+                </div>
+
+                {/* Account Transfers History */}
+                {accountTransfers.length > 0 && (
+                    <div className="space-y-4 mb-8">
+                        <h4 className="text-lg font-semibold text-gray-700 flex items-center space-x-2">
+                            <FaExchangeAlt className="w-5 h-5 text-blue-600" />
+                            <span>Account Transfers</span>
+                        </h4>
+
+                        <div className="space-y-3">
+                            {accountTransfers
+                                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                                .slice(0, 5)
+                                .map((transfer, index) => (
+                                    <div
+                                        key={transfer.id}
+                                        className="group bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.01]"
+                                        style={{ animationDelay: `${index * 100}ms` }}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
+                                                    <FaExchangeAlt className="w-4 h-4 text-white" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-gray-800">
+                                                        {formatCurrency(transfer.amount)}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600">
+                                                        {transfer.fromAccount} → {transfer.toAccount}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                                    Completed
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {formatDate(transfer.createdAt)} at {formatTime(transfer.createdAt)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
                     </div>
                 )}
 
-                {/* Adjustment Form */}
-                {showAdjustmentForm && selectedAccount && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-blue-800 mb-3">
-                            Adjust {selectedAccount.name} Balance
-                        </h3>
+                {/* Fuel Transfers History */}
+                {fuelTransfers.filter(transfer => transfer.status === 'completed').length > 0 && (
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-gray-700 flex items-center space-x-2">
+                            <FaGasPump className="w-5 h-5 text-orange-600" />
+                            <span>Completed Fuel Transfers</span>
+                        </h4>
 
-                        <form onSubmit={handleAdjustment} className="space-y-3">
-                            <div>
-                                <label className="block text-sm font-medium text-blue-700 mb-1">
-                                    Adjustment Amount (₹)
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={adjustmentAmount}
-                                    onChange={(e) => setAdjustmentAmount(e.target.value)}
-                                    className="w-full p-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Enter amount (+ for credit, - for debit)"
-                                    required
-                                />
-                                <p className="text-xs text-blue-600 mt-1">
-                                    Use positive numbers to add money, negative to subtract
-                                </p>
-                            </div>
-
-                            <div className="flex space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowAdjustmentForm(false);
-                                        setSelectedAccount(null);
-                                        setAdjustmentAmount('');
-                                    }}
-                                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Updating...' : 'Update Balance'}
-                                </button>
-                            </div>
-                        </form>
+                        <div className="space-y-3">
+                            {fuelTransfers
+                                .filter(transfer => transfer.status === 'completed')
+                                .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                                .slice(0, 5)
+                                .map((transfer, index) => (
+                                    <div
+                                        key={transfer.id}
+                                        className="group bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.01]"
+                                        style={{ animationDelay: `${index * 100}ms` }}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-600 rounded-lg">
+                                                    <FaGasPump className="w-4 h-4 text-white" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-gray-800">
+                                                        {formatCurrency(transfer.amount)}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600">
+                                                        {transfer.fromAccount} → Fuel Account
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                                    Completed
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {formatDate(transfer.completedAt)} at {formatTime(transfer.completedAt)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
                     </div>
                 )}
 
-                {/* Info */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                    <div className="text-sm text-yellow-800">
-                        <strong>Note:</strong> Manual adjustments should be used sparingly.
-                        Most balance changes happen automatically through rides and expenses.
+                {/* Empty State - Show when no transfers exist */}
+                {accountTransfers.length === 0 && fuelTransfers.filter(transfer => transfer.status === 'completed').length === 0 && (
+                    <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FaChartLine className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-600 mb-2">No Transfer History</h4>
+                        <p className="text-sm text-gray-500">Transfer history will appear here once you make transfers between accounts or fuel transfers.</p>
                     </div>
-                </div>
+                )}
+
             </div>
+
         </div>
     );
 };

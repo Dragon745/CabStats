@@ -1,12 +1,13 @@
 // IndexedDB utility for CabStats
 const DB_NAME = 'CabStatsDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const STORES = {
     ACCOUNTS: 'accounts',
     SESSIONS: 'sessions',
     RIDES: 'rides',
     FUEL_TRANSFERS: 'fuelTransfers',
+    ACCOUNT_TRANSFERS: 'accountTransfers',
     EXPENSES: 'expenses',
     ACTIVE_RIDE: 'activeRide'
 };
@@ -53,6 +54,14 @@ class Database {
                     if (!ridesStore.indexNames.contains('sessionId')) {
                         ridesStore.createIndex('sessionId', 'sessionId');
                     }
+                }
+
+                // Create account transfers store
+                if (!db.objectStoreNames.contains(STORES.ACCOUNT_TRANSFERS)) {
+                    const accountTransfersStore = db.createObjectStore(STORES.ACCOUNT_TRANSFERS, { keyPath: 'id', autoIncrement: true });
+                    accountTransfersStore.createIndex('fromAccount', 'fromAccount');
+                    accountTransfersStore.createIndex('toAccount', 'toAccount');
+                    accountTransfersStore.createIndex('createdAt', 'createdAt');
                 }
 
                 // Create fuel transfers store

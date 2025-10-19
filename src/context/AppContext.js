@@ -29,11 +29,132 @@ export const AppProvider = ({ children }) => {
     const [sessions, setSessions] = useState([]);
     const [rides, setRides] = useState([]);
     const [fuelTransfers, setFuelTransfers] = useState([]);
+    const [accountTransfers, setAccountTransfers] = useState([]);
     const [expenses, setExpenses] = useState([]);
     const [activeRide, setActiveRide] = useState(null);
     const [currentSession, setCurrentSession] = useState(null);
     const [pendingFuelTransfer, setPendingFuelTransfer] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [locationPermission, setLocationPermission] = useState(null);
+
+    // Location permission management
+    const requestLocationPermission = async () => {
+        try {
+            if (!navigator.geolocation) {
+                throw new Error('Geolocation is not supported by this browser');
+            }
+
+            // Check if permission is already granted
+            if (locationPermission === 'granted') {
+                return true;
+            }
+
+            // Request permission
+            const permission = await navigator.permissions.query({ name: 'geolocation' });
+
+            if (permission.state === 'granted') {
+                setLocationPermission('granted');
+                localStorage.setItem('locationPermission', 'granted');
+                return true;
+            } else if (permission.state === 'prompt') {
+                // Try to get current position to trigger permission prompt
+                return new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        () => {
+                            setLocationPermission('granted');
+                            localStorage.setItem('locationPermission', 'granted');
+                            resolve(true);
+                        },
+                        (error) => {
+                            if (error.code === error.PERMISSION_DENIED) {
+                                setLocationPermission('denied');
+                                localStorage.setItem('locationPermission', 'denied');
+                            } else {
+                                setLocationPermission('error');
+                                localStorage.setItem('locationPermission', 'error');
+                            }
+                            resolve(false);
+                        },
+                        { timeout: 10000, enableHighAccuracy: true }
+                    );
+                });
+            } else {
+                setLocationPermission('denied');
+                localStorage.setItem('locationPermission', 'denied');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error requesting location permission:', error);
+            setLocationPermission('error');
+            localStorage.setItem('locationPermission', 'error');
+            return false;
+        }
+    };
+
+    const getCurrentLocation = async () => {
+        if (locationPermission !== 'granted') {
+            const hasPermission = await requestLocationPermission();
+            if (!hasPermission) {
+                throw new Error('Location permission denied');
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    try {
+                        const { latitude, longitude } = position.coords;
+                        const areaName = await reverseGeocode(latitude, longitude);
+                        resolve({
+                            latitude,
+                            longitude,
+                            areaName,
+                            timestamp: new Date().toISOString()
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
+                },
+                (error) => {
+                    reject(new Error(`Location error: ${error.message}`));
+                },
+                { timeout: 15000, enableHighAccuracy: true, maximumAge: 300000 }
+            );
+        });
+    };
+
+    const reverseGeocode = async (latitude, longitude) => {
+        try {
+            // Using a free reverse geocoding service
+            const response = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+
+            if (!response.ok) {
+                throw new Error('Reverse geocoding failed');
+            }
+
+            const data = await response.json();
+
+            // Build area name from available data
+            let areaName = '';
+            if (data.locality) areaName += data.locality;
+            if (data.principalSubdivision) {
+                if (areaName) areaName += ', ';
+                areaName += data.principalSubdivision;
+            }
+            if (data.countryName) {
+                if (areaName) areaName += ', ';
+                areaName += data.countryName;
+            }
+
+            return areaName || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        } catch (error) {
+            console.error('Reverse geocoding error:', error);
+            // Fallback to coordinates if reverse geocoding fails
+            return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        }
+    };
 
     // Initialize database and load data
     useEffect(() => {
@@ -42,6 +163,13 @@ export const AppProvider = ({ children }) => {
                 await database.init();
                 await initializeDefaultAccounts(database);
                 await loadAllData();
+
+                // Load location permission from localStorage
+                const savedPermission = localStorage.getItem('locationPermission');
+                if (savedPermission) {
+                    setLocationPermission(savedPermission);
+                }
+
                 setLoading(false);
             } catch (error) {
                 console.error('Failed to initialize app:', error);
@@ -54,11 +182,12 @@ export const AppProvider = ({ children }) => {
 
     const loadAllData = async () => {
         try {
-            const [accountsData, sessionsData, ridesData, fuelTransfersData, expensesData, activeRideData] = await Promise.all([
+            const [accountsData, sessionsData, ridesData, fuelTransfersData, accountTransfersData, expensesData, activeRideData] = await Promise.all([
                 database.getAll(STORES.ACCOUNTS),
                 database.getAll(STORES.SESSIONS),
                 database.getAll(STORES.RIDES),
                 database.getAll(STORES.FUEL_TRANSFERS),
+                database.getAll(STORES.ACCOUNT_TRANSFERS),
                 database.getAll(STORES.EXPENSES),
                 database.getActiveRide()
             ]);
@@ -67,6 +196,7 @@ export const AppProvider = ({ children }) => {
             setSessions(sessionsData);
             setRides(ridesData);
             setFuelTransfers(fuelTransfersData);
+            setAccountTransfers(accountTransfersData);
             setExpenses(expensesData);
 
             // Load active ride if it exists
@@ -162,6 +292,16 @@ export const AppProvider = ({ children }) => {
 
     // Ride operations
     const startRide = async () => {
+        let startLocation = null;
+
+        // Try to get current location
+        try {
+            startLocation = await getCurrentLocation();
+        } catch (error) {
+            console.warn('Could not get start location:', error.message);
+            // Continue without location if permission denied or error
+        }
+
         const ride = {
             startTime: new Date().toISOString(),
             endTime: null,
@@ -178,6 +318,8 @@ export const AppProvider = ({ children }) => {
             profitPerKm: 0,
             profitPerMin: 0,
             fuelAllocation: 0,
+            startLocation,
+            endLocation: null,
             createdAt: new Date().toISOString()
         };
 
@@ -199,6 +341,15 @@ export const AppProvider = ({ children }) => {
         try {
             const endTime = new Date().toISOString();
             const duration = calculateDuration(activeRide.startTime, endTime);
+
+            // Try to get end location
+            let endLocation = null;
+            try {
+                endLocation = await getCurrentLocation();
+            } catch (error) {
+                console.warn('Could not get end location:', error.message);
+                // Continue without end location if permission denied or error
+            }
 
             // Convert all inputs to numbers for calculations
             const fare = parseFloat(rideData.fare) || 0;
@@ -246,7 +397,8 @@ export const AppProvider = ({ children }) => {
                 profit,
                 profitPerKm,
                 profitPerMin,
-                fuelAllocation
+                fuelAllocation,
+                endLocation
             };
 
             // Save ride
@@ -277,6 +429,81 @@ export const AppProvider = ({ children }) => {
                 const savedTransfer = { ...fuelTransfer, id: transferId };
                 setFuelTransfers(prev => [...prev, savedTransfer]);
                 setPendingFuelTransfer(prev => prev + fuelAllocation);
+            }
+
+            // Automatically create expense entries for fees and deduct from Main Account
+            const feeExpenses = [];
+            const mainAccount = accounts.find(acc => acc.name === 'Main Account');
+
+            if (!mainAccount) {
+                throw new Error('Main Account not found');
+            }
+
+            // Create expense entries for each fee type that has a value > 0
+            if (airportFee > 0) {
+                const airportExpense = {
+                    sessionId: currentSession?.id,
+                    category: 'Airport Fee',
+                    amount: airportFee,
+                    account: 'Main Account',
+                    description: `Airport fee for ride on ${new Date().toLocaleDateString()}`,
+                    createdAt: new Date().toISOString()
+                };
+                const expenseId = await database.add(STORES.EXPENSES, airportExpense);
+                const savedExpense = { ...airportExpense, id: expenseId };
+                setExpenses(prev => [...prev, savedExpense]);
+                feeExpenses.push(savedExpense);
+            }
+
+            if (platformFee > 0) {
+                const platformExpense = {
+                    sessionId: currentSession?.id,
+                    category: 'Platform Fee',
+                    amount: platformFee,
+                    account: 'Main Account',
+                    description: `Platform fee for ride on ${new Date().toLocaleDateString()}`,
+                    createdAt: new Date().toISOString()
+                };
+                const expenseId = await database.add(STORES.EXPENSES, platformExpense);
+                const savedExpense = { ...platformExpense, id: expenseId };
+                setExpenses(prev => [...prev, savedExpense]);
+                feeExpenses.push(savedExpense);
+            }
+
+            if (tolls > 0) {
+                const tollsExpense = {
+                    sessionId: currentSession?.id,
+                    category: 'Tolls',
+                    amount: tolls,
+                    account: 'Main Account',
+                    description: `Tolls for ride on ${new Date().toLocaleDateString()}`,
+                    createdAt: new Date().toISOString()
+                };
+                const expenseId = await database.add(STORES.EXPENSES, tollsExpense);
+                const savedExpense = { ...tollsExpense, id: expenseId };
+                setExpenses(prev => [...prev, savedExpense]);
+                feeExpenses.push(savedExpense);
+            }
+
+            if (otherFees > 0) {
+                const otherFeesExpense = {
+                    sessionId: currentSession?.id,
+                    category: 'Other Fees',
+                    amount: otherFees,
+                    account: 'Main Account',
+                    description: `Other fees for ride on ${new Date().toLocaleDateString()}`,
+                    createdAt: new Date().toISOString()
+                };
+                const expenseId = await database.add(STORES.EXPENSES, otherFeesExpense);
+                const savedExpense = { ...otherFeesExpense, id: expenseId };
+                setExpenses(prev => [...prev, savedExpense]);
+                feeExpenses.push(savedExpense);
+            }
+
+            // Deduct total fees from Main Account
+            const totalFees = airportFee + platformFee + tolls + otherFees;
+            if (totalFees > 0) {
+                await updateAccountBalance(mainAccount.id, -totalFees);
             }
 
             // Clear active ride from IndexedDB
@@ -409,6 +636,18 @@ export const AppProvider = ({ children }) => {
             // Update account balances
             await updateAccountBalance(fromAccount.id, -amount);
             await updateAccountBalance(toAccount.id, amount);
+
+            // Save transfer record
+            const transferRecord = {
+                fromAccount: fromAccountName,
+                toAccount: toAccountName,
+                amount: amount,
+                createdAt: new Date().toISOString()
+            };
+
+            const transferId = await database.add(STORES.ACCOUNT_TRANSFERS, transferRecord);
+            const savedTransfer = { ...transferRecord, id: transferId };
+            setAccountTransfers(prev => [...prev, savedTransfer]);
 
         } catch (error) {
             console.error('Failed to transfer between accounts:', error);
@@ -731,11 +970,13 @@ export const AppProvider = ({ children }) => {
         sessions,
         rides,
         fuelTransfers,
+        accountTransfers,
         expenses,
         activeRide,
         currentSession,
         pendingFuelTransfer,
         loading,
+        locationPermission,
 
         // Actions
         updateAccountBalance,
@@ -749,6 +990,10 @@ export const AppProvider = ({ children }) => {
         transferBetweenAccounts,
         transferToFuelAccount,
         resetAllData,
+
+        // Location functions
+        requestLocationPermission,
+        getCurrentLocation,
 
         // Utilities
         getCombinedBalance,

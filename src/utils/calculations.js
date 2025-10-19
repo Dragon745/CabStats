@@ -76,6 +76,7 @@ export const getExpenseCategories = () => [
     'Parking Fee',
     'Platform Fee',
     'Rent',
+    'Tea',
     'Tolls',
     'Water',
     'Withdrawals'
