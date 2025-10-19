@@ -8,7 +8,7 @@ import {
     FaPlus, FaSpinner, FaCheck, FaTimes,
     FaReceipt, FaChartBar, FaExclamationCircle,
     FaInfoCircle, FaCalendar, FaClock, FaEdit,
-    FaCoffee
+    FaCoffee, FaFilter, FaSearch
 } from 'react-icons/fa';
 import { MdCategory, MdAccountBalance } from 'react-icons/md';
 
@@ -32,6 +32,14 @@ const ExpenseTracker = () => {
 
     const [loading, setLoading] = useState(false);
     const [animatedTotal, setAnimatedTotal] = useState(0);
+
+    // Filter states
+    const [filters, setFilters] = useState({
+        category: '',
+        startDate: '',
+        endDate: ''
+    });
+    const [showFilters, setShowFilters] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -71,6 +79,49 @@ const ExpenseTracker = () => {
             [name]: value
         }));
     };
+
+    // Filter functions
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        setFilters(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const clearFilters = () => {
+        setFilters({
+            category: '',
+            startDate: '',
+            endDate: ''
+        });
+    };
+
+    const getFilteredExpenses = () => {
+        let filtered = [...expenses];
+
+        // Filter by category
+        if (filters.category) {
+            filtered = filtered.filter(expense => expense.category === filters.category);
+        }
+
+        // Filter by date range
+        if (filters.startDate) {
+            const startDate = new Date(filters.startDate);
+            filtered = filtered.filter(expense => new Date(expense.createdAt) >= startDate);
+        }
+
+        if (filters.endDate) {
+            const endDate = new Date(filters.endDate);
+            endDate.setHours(23, 59, 59, 999); // Include the entire end date
+            filtered = filtered.filter(expense => new Date(expense.createdAt) <= endDate);
+        }
+
+        return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    };
+
+    const filteredExpenses = getFilteredExpenses();
+    const hasActiveFilters = filters.category || filters.startDate || filters.endDate;
 
     const handleDeleteExpense = async (expenseId) => {
         if (window.confirm('Are you sure you want to delete this expense? This will reverse the account deduction.')) {
@@ -291,21 +342,17 @@ const ExpenseTracker = () => {
                         return (
                             <div
                                 key={account.id}
-                                className="group bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-gray-200"
+                                className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200"
                                 style={{ animationDelay: `${index * 100}ms` }}
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm">
-                                            <IconComponent className="w-5 h-5 text-gray-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-sm font-medium text-gray-700">{account.name}</div>
-                                        </div>
+                                <div className="flex items-center space-x-3 mb-3">
+                                    <div className="p-2 bg-gray-100 rounded-lg">
+                                        <IconComponent className="w-5 h-5 text-gray-600" />
                                     </div>
-                                    <div className={`text-lg font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatCurrency(account.balance)}
-                                    </div>
+                                    <div className="text-sm font-medium text-gray-700">{account.name}</div>
+                                </div>
+                                <div className={`text-xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {formatCurrency(account.balance)}
                                 </div>
                             </div>
                         );
@@ -315,15 +362,138 @@ const ExpenseTracker = () => {
 
             {/* Expense History */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div className="flex items-center space-x-3 mb-6">
-                    <div className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl">
-                        <FaChartBar className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl">
+                            <FaChartBar className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-800">Expense History</h3>
+                            <p className="text-sm text-gray-600">
+                                {hasActiveFilters
+                                    ? `Showing ${filteredExpenses.length} of ${expenses.length} expenses`
+                                    : 'Track your expense history'
+                                }
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-800">Recent Expenses</h3>
-                        <p className="text-sm text-gray-600">Track your expense history</p>
-                    </div>
+
+                    {/* Filter Toggle Button */}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${hasActiveFilters
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                    >
+                        <FaFilter className="w-4 h-4" />
+                        <span>Filters</span>
+                        {hasActiveFilters && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                    </button>
                 </div>
+
+                {/* Filter Panel */}
+                {showFilters && (
+                    <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                        <div className="flex items-center space-x-2 mb-4">
+                            <FaSearch className="w-5 h-5 text-blue-600" />
+                            <h4 className="text-lg font-semibold text-blue-800">Filter Expenses</h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            {/* Category Filter */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <div className="flex items-center space-x-2">
+                                        <MdCategory className="w-4 h-4 text-gray-500" />
+                                        <span>Category</span>
+                                    </div>
+                                </label>
+                                <select
+                                    name="category"
+                                    value={filters.category}
+                                    onChange={handleFilterChange}
+                                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                >
+                                    <option value="">All Categories</option>
+                                    {getExpenseCategories().map(category => {
+                                        const IconComponent = getCategoryIcon(category);
+                                        return (
+                                            <option key={category} value={category}>
+                                                {category}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+
+                            {/* Start Date Filter */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <div className="flex items-center space-x-2">
+                                        <FaCalendar className="w-4 h-4 text-gray-500" />
+                                        <span>From Date</span>
+                                    </div>
+                                </label>
+                                <input
+                                    type="date"
+                                    name="startDate"
+                                    value={filters.startDate}
+                                    onChange={handleFilterChange}
+                                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                />
+                            </div>
+
+                            {/* End Date Filter */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <div className="flex items-center space-x-2">
+                                        <FaCalendar className="w-4 h-4 text-gray-500" />
+                                        <span>To Date</span>
+                                    </div>
+                                </label>
+                                <input
+                                    type="date"
+                                    name="endDate"
+                                    value={filters.endDate}
+                                    onChange={handleFilterChange}
+                                    className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Filter Actions */}
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600">
+                                {hasActiveFilters && (
+                                    <span className="flex items-center space-x-2">
+                                        <FaInfoCircle className="w-4 h-4" />
+                                        <span>Active filters applied</span>
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={clearFilters}
+                                    disabled={!hasActiveFilters}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                >
+                                    <FaTimes className="w-4 h-4" />
+                                    <span>Clear All</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowFilters(false)}
+                                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center space-x-2"
+                                >
+                                    <FaCheck className="w-4 h-4" />
+                                    <span>Apply Filters</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {expenses.length === 0 ? (
                     <div className="text-center py-12">
@@ -339,11 +509,30 @@ const ExpenseTracker = () => {
                             </div>
                         </div>
                     </div>
+                ) : filteredExpenses.length === 0 ? (
+                    <div className="text-center py-12">
+                        <div className="w-20 h-20 bg-gradient-to-r from-blue-100 to-indigo-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <FaSearch className="w-10 h-10 text-blue-400" />
+                        </div>
+                        <h4 className="text-xl font-semibold text-gray-600 mb-3">No Matching Expenses</h4>
+                        <p className="text-gray-500 mb-6">No expenses match your current filter criteria</p>
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 max-w-md mx-auto">
+                            <div className="flex items-center space-x-2 text-blue-800">
+                                <FaInfoCircle className="w-4 h-4" />
+                                <span className="text-sm">Try adjusting your filters or clear them to see all expenses</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={clearFilters}
+                            className="mt-4 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
                 ) : (
-                    <div className="space-y-4">
-                        {expenses
-                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                            .slice(0, 10)
+                    <div className="space-y-3">
+                        {filteredExpenses
+                            .slice(0, hasActiveFilters ? filteredExpenses.length : 10)
                             .map((expense, index) => {
                                 const CategoryIcon = getCategoryIcon(expense.category);
                                 const AccountIcon = getAccountIcon(expense.account);
@@ -352,57 +541,74 @@ const ExpenseTracker = () => {
                                 return (
                                     <div
                                         key={expense.id}
-                                        className="group bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1"
+                                        className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all duration-200"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-2">
-                                                    <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${gradientClass} text-white text-sm font-semibold flex items-center space-x-2`}>
-                                                        <CategoryIcon className="w-4 h-4" />
-                                                        <span>{expense.category}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-1 text-gray-500">
-                                                        <AccountIcon className="w-4 h-4" />
-                                                        <span className="text-sm">{expense.account}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-sm text-gray-600 flex items-center space-x-2">
+                                        {/* Top Row: Category Badge and Amount */}
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className={`px-3 py-1.5 rounded-full bg-gradient-to-r ${gradientClass} text-white text-sm font-semibold flex items-center space-x-2`}>
+                                                <CategoryIcon className="w-4 h-4" />
+                                                <span>{expense.category}</span>
+                                            </div>
+                                            <div className="text-xl font-bold text-red-600">
+                                                -{formatCurrency(expense.amount)}
+                                            </div>
+                                        </div>
+
+                                        {/* Middle Row: Account and Date/Time */}
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center space-x-2 text-gray-600">
+                                                <AccountIcon className="w-4 h-4" />
+                                                <span className="text-sm font-medium">{expense.account}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-3 text-gray-500">
+                                                <div className="flex items-center space-x-1">
                                                     <FaCalendar className="w-3 h-3" />
-                                                    <span>{formatDate(expense.createdAt)}</span>
+                                                    <span className="text-xs">{formatDate(expense.createdAt)}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1">
                                                     <FaClock className="w-3 h-3" />
-                                                    <span>{new Date(expense.createdAt).toLocaleTimeString()}</span>
+                                                    <span className="text-xs">{new Date(expense.createdAt).toLocaleTimeString()}</span>
                                                 </div>
-                                                {expense.description && (
-                                                    <div className="text-sm text-gray-500 mt-2 italic bg-gray-50 rounded-lg p-2">
-                                                        "{expense.description}"
-                                                    </div>
-                                                )}
                                             </div>
-                                            <div className="flex items-center space-x-3">
-                                                <div className="text-right">
-                                                    <div className="text-xl font-bold text-red-600">
-                                                        -{formatCurrency(expense.amount)}
-                                                    </div>
+                                        </div>
+
+                                        {/* Bottom Row: Description and Delete Button */}
+                                        <div className="flex items-center justify-between">
+                                            {expense.description ? (
+                                                <div className="text-sm text-gray-600 italic flex-1">
+                                                    "{expense.description}"
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDeleteExpense(expense.id)}
-                                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-200"
-                                                    title="Delete expense"
-                                                >
-                                                    <FaTrashAlt className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            ) : (
+                                                <div className="flex-1"></div>
+                                            )}
+                                            <button
+                                                onClick={() => handleDeleteExpense(expense.id)}
+                                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 ml-3"
+                                                title="Delete expense"
+                                            >
+                                                <FaTrashAlt className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
                                 );
                             })}
 
-                        {expenses.length > 10 && (
+                        {!hasActiveFilters && expenses.length > 10 && (
                             <div className="text-center pt-4">
                                 <div className="bg-gray-50 rounded-xl p-3">
                                     <p className="text-sm text-gray-600">
                                         Showing last 10 expenses. Total expenses: <span className="font-semibold text-gray-800">{expenses.length}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {hasActiveFilters && (
+                            <div className="text-center pt-4">
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3">
+                                    <p className="text-sm text-blue-800">
+                                        Showing <span className="font-semibold">{filteredExpenses.length}</span> filtered expenses of <span className="font-semibold">{expenses.length}</span> total
                                     </p>
                                 </div>
                             </div>

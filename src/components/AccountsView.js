@@ -37,27 +37,40 @@ const AccountsView = () => {
     const [accountTransferAmount, setAccountTransferAmount] = useState('');
     const [animatedBalance, setAnimatedBalance] = useState(0);
 
-    // Animated balance counter effect
+    // Animated balance counter effect - Optimized for speed
     useEffect(() => {
         const combinedBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance || 0), 0);
         const targetBalance = combinedBalance;
-        const duration = 1000;
-        const steps = 60;
-        const increment = (targetBalance - animatedBalance) / steps;
-        let step = 0;
+        const duration = 800; // Reduced from 1000ms to 800ms
+        const startTime = Date.now();
+        const startBalance = animatedBalance;
+        const difference = targetBalance - startBalance;
 
-        const timer = setInterval(() => {
-            step++;
-            setAnimatedBalance(prev => prev + increment);
+        // If difference is very small, set immediately
+        if (Math.abs(difference) < 0.01) {
+            setAnimatedBalance(targetBalance);
+            return;
+        }
 
-            if (step >= steps) {
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Easing function for smoother animation
+            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+            const currentBalance = startBalance + (difference * easeOutQuart);
+
+            setAnimatedBalance(currentBalance);
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
                 setAnimatedBalance(targetBalance);
-                clearInterval(timer);
             }
-        }, duration / steps);
+        };
 
-        return () => clearInterval(timer);
-    }, [accounts, animatedBalance]);
+        requestAnimationFrame(animate);
+    }, [accounts]);
 
     const getAccountIcon = (accountName) => {
         switch (accountName) {

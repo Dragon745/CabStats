@@ -2,7 +2,66 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [5.0.0] - 2025-10-19 19:05:11
+
+### Added
+
+- **Expense Filtering System**:
+  - **NEW**: Advanced filtering system for expense history with category and date range filters
+  - **NEW**: Category filter dropdown with all available expense categories
+  - **NEW**: Date range filtering with "From Date" and "To Date" inputs
+  - **NEW**: Collapsible filter panel with professional UI design
+  - **NEW**: Real-time filter application with instant results
+  - **NEW**: Filter status indicators showing active filters and result counts
+  - **NEW**: Clear all filters functionality with one-click reset
+  - **NEW**: Smart empty states for no matching results with helpful guidance
+  - **NEW**: Enhanced expense count display showing filtered vs total expenses
+  - **NEW**: Professional filter UI with glassmorphism effects and smooth animations
+  - **NEW**: Responsive filter layout that works on mobile and desktop
+  - **NEW**: Filter toggle button with visual indicators for active filters
+  - Enhanced expense management with powerful filtering capabilities
+  - Improved user experience for finding specific expenses quickly
+
+### Improved
+
+- **Count-up Animation Performance Optimization**:
+
+  - **NEW**: Optimized count-up animations in Dashboard and Accounts sections for faster performance
+  - **NEW**: Reduced animation duration from 1000ms to 800ms (well under 2-second requirement)
+  - **NEW**: Replaced setInterval with requestAnimationFrame for smoother, more efficient animations
+  - **NEW**: Added easing function (easeOutQuart) for more natural animation feel
+  - **NEW**: Implemented immediate setting for small differences to avoid unnecessary animations
+  - **NEW**: Consistent animation speed regardless of amount size
+  - **NEW**: Better performance with fewer DOM updates and optimized rendering
+  - Enhanced user experience with faster, more responsive balance updates
+  - Improved animation smoothness and reduced visual lag
+
+- **Rides Section Card Layout Enhancement**:
+  - **NEW**: Professional mobile-first card redesign with improved spacing
+  - **NEW**: Enhanced visual hierarchy with clear section separation
+  - **NEW**: Better typography and information organization
+  - **NEW**: Improved location display with proper spacing and visual indicators
+  - **NEW**: Enhanced metrics cards with better borders and gradients
+  - **NEW**: Professional fees breakdown section with glassmorphism styling
+  - **NEW**: Cleaner bottom metrics layout with visual separators
+  - **NEW**: Increased card spacing from 4 to 6 for better mobile readability
+  - **NEW**: Enhanced glassmorphism effects with better backdrop blur
+  - **NEW**: Improved hover effects with subtle scale transforms
+  - **NEW**: Better color coordination and visual consistency
+  - **NEW**: Transaction-style horizontal layout with proper alignment
+  - **NEW**: Compact design with better information density
+  - **NEW**: Professional card styling with clean borders and shadows
+  - **NEW**: Optimized spacing and alignment for mobile devices
+  - **NEW**: Fixed account balances section with clean 2x2 grid layout
+  - **NEW**: Improved account balance cards with proper spacing and typography
+  - **NEW**: Enhanced visual hierarchy for account information display
+  - **NEW**: Redesigned expense history cards with professional transaction-style layout
+  - **NEW**: Improved expense card visual hierarchy with clear row separation
+  - **NEW**: Enhanced category badges with gradient backgrounds and professional icons
+  - **NEW**: Better spacing and typography for expense information display
+  - **NEW**: Cleaner expense card design with proper alignment and visual consistency
+  - Enhanced mobile user experience with professional card design
+  - Reduced visual clutter and improved information accessibility
 
 ## [4.0.0] - 2025-10-19 15:22:37
 

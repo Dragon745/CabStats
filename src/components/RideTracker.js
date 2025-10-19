@@ -16,7 +16,8 @@ import {
     FaTaxi,
     FaMobile,
     FaWallet,
-    FaInfoCircle
+    FaInfoCircle,
+    FaCalendar
 } from 'react-icons/fa';
 
 const RideTracker = () => {
@@ -499,130 +500,145 @@ const RideTracker = () => {
                                 return (
                                     <div
                                         key={ride.id}
-                                        className="group bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1"
+                                        className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                     >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-2">
-                                                    <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${gradientClass} text-white text-sm font-semibold`}>
+                                        {/* Main Card Content */}
+                                        <div className="p-5">
+                                            {/* Top Row: Service Type, Payment Method, Profit */}
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className={`px-3 py-1.5 rounded-full bg-gradient-to-r ${gradientClass} text-white text-sm font-semibold shadow-sm`}>
                                                         {ride.rideType}
                                                     </div>
-                                                    <div className="flex items-center space-x-1 text-gray-500">
+                                                    <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
                                                         <PaymentIcon className="w-4 h-4" />
-                                                        <span className="text-sm">{ride.paymentMethod}</span>
+                                                        <span className="text-sm font-medium">{ride.paymentMethod}</span>
                                                     </div>
                                                 </div>
-                                                <div className="text-sm text-gray-600">
-                                                    {formatDate(ride.createdAt)} at {formatTime(ride.startTime)}
-                                                </div>
-
-                                                {/* Location Information */}
-                                                {(ride.startLocation || ride.endLocation) && (
-                                                    <div className="mt-2 space-y-1">
-                                                        {ride.startLocation && (
-                                                            <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                                                <span>Start: {ride.startLocation.areaName}</span>
-                                                            </div>
-                                                        )}
-                                                        {ride.endLocation && (
-                                                            <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                                                <span>End: {ride.endLocation.areaName}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center space-x-3">
                                                 <div className="text-right">
-                                                    <div className={`text-xl font-bold ${ride.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    <div className={`text-2xl font-bold ${ride.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                         {formatCurrency(ride.profit)}
                                                     </div>
-                                                    <div className="text-sm text-gray-500">Profit</div>
+                                                    <div className="text-sm text-gray-500 font-medium">Profit</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Date and Time Row */}
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center space-x-4 text-gray-600">
+                                                    <div className="flex items-center space-x-2">
+                                                        <FaCalendar className="w-4 h-4" />
+                                                        <span className="text-sm">{formatDate(ride.createdAt)}</span>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <FaClock className="w-4 h-4" />
+                                                        <span className="text-sm">{formatTime(ride.startTime)}</span>
+                                                    </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteRide(ride.id)}
-                                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-200"
+                                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
                                                     title="Delete ride"
                                                 >
                                                     <FaTrashAlt className="w-4 h-4" />
                                                 </button>
                                             </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-3 gap-4 mb-4">
-                                            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-3 text-center">
-                                                <div className="flex items-center justify-center mb-1">
-                                                    <FaMoneyBillWave className="w-4 h-4 text-blue-600" />
+                                            {/* Location Information */}
+                                            {(ride.startLocation || ride.endLocation) && (
+                                                <div className="mb-4 space-y-2">
+                                                    {ride.startLocation && (
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                                                            <span className="text-sm text-gray-600">
+                                                                <span className="font-medium text-gray-700">Start:</span> {ride.startLocation.areaName}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {ride.endLocation && (
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
+                                                            <span className="text-sm text-gray-600">
+                                                                <span className="font-medium text-gray-700">End:</span> {ride.endLocation.areaName}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="text-sm font-bold text-blue-600">{formatCurrency(ride.fare)}</div>
-                                                <div className="text-xs text-gray-600">Fare</div>
-                                            </div>
-                                            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-3 text-center">
-                                                <div className="flex items-center justify-center mb-1">
-                                                    <FaTachometerAlt className="w-4 h-4 text-green-600" />
-                                                </div>
-                                                <div className="text-sm font-bold text-green-600">{ride.km} km</div>
-                                                <div className="text-xs text-gray-600">Distance</div>
-                                            </div>
-                                            <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center">
-                                                <div className="flex items-center justify-center mb-1">
-                                                    <FaClock className="w-4 h-4 text-purple-600" />
-                                                </div>
-                                                <div className="text-sm font-bold text-purple-600">
-                                                    {Math.floor((new Date(ride.endTime) - new Date(ride.startTime)) / (1000 * 60))}m
-                                                </div>
-                                                <div className="text-xs text-gray-600">Duration</div>
-                                            </div>
-                                        </div>
+                                            )}
 
-                                        {(ride.airportFee > 0 || ride.platformFee > 0 || ride.tolls > 0 || ride.otherFees > 0) && (
-                                            <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                                                <div className="text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
-                                                    <FaReceipt className="w-4 h-4 text-gray-500" />
-                                                    <span>Fees Breakdown</span>
+                                            {/* Metrics Row */}
+                                            <div className="grid grid-cols-3 gap-4 mb-4">
+                                                <div className="text-center bg-blue-50 rounded-xl p-3 border border-blue-200">
+                                                    <FaMoneyBillWave className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                                                    <div className="text-lg font-bold text-blue-700">{formatCurrency(ride.fare)}</div>
+                                                    <div className="text-xs text-blue-600 font-medium">Fare</div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                                    {ride.airportFee > 0 && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Airport:</span>
-                                                            <span className="font-semibold">{formatCurrency(ride.airportFee)}</span>
-                                                        </div>
-                                                    )}
-                                                    {ride.platformFee > 0 && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Platform:</span>
-                                                            <span className="font-semibold">{formatCurrency(ride.platformFee)}</span>
-                                                        </div>
-                                                    )}
-                                                    {ride.tolls > 0 && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Tolls:</span>
-                                                            <span className="font-semibold">{formatCurrency(ride.tolls)}</span>
-                                                        </div>
-                                                    )}
-                                                    {ride.otherFees > 0 && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Other:</span>
-                                                            <span className="font-semibold">{formatCurrency(ride.otherFees)}</span>
-                                                        </div>
-                                                    )}
+                                                <div className="text-center bg-green-50 rounded-xl p-3 border border-green-200">
+                                                    <FaTachometerAlt className="w-5 h-5 text-green-600 mx-auto mb-1" />
+                                                    <div className="text-lg font-bold text-green-700">{ride.km}</div>
+                                                    <div className="text-xs text-green-600 font-medium">km Distance</div>
+                                                </div>
+                                                <div className="text-center bg-purple-50 rounded-xl p-3 border border-purple-200">
+                                                    <FaClock className="w-5 h-5 text-purple-600 mx-auto mb-1" />
+                                                    <div className="text-lg font-bold text-purple-700">
+                                                        {Math.floor((new Date(ride.endTime) - new Date(ride.startTime)) / (1000 * 60))}m
+                                                    </div>
+                                                    <div className="text-xs text-purple-600 font-medium">Duration</div>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
-                                            <div className="text-center">
-                                                <div className="text-sm text-gray-500">Profit/km</div>
-                                                <div className={`font-bold ${ride.profitPerKm >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {formatCurrency(ride.profitPerKm)}
+                                            {/* Fees Section */}
+                                            {(ride.airportFee > 0 || ride.platformFee > 0 || ride.tolls > 0 || ride.otherFees > 0) && (
+                                                <div className="mb-4">
+                                                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+                                                        <div className="flex items-center space-x-2 mb-2">
+                                                            <FaReceipt className="w-4 h-4 text-orange-600" />
+                                                            <span className="text-sm font-semibold text-orange-800">Fees</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                            {ride.airportFee > 0 && (
+                                                                <div className="flex justify-between bg-white/60 rounded-lg px-2 py-1">
+                                                                    <span className="text-gray-600">Airport:</span>
+                                                                    <span className="font-semibold text-gray-800">{formatCurrency(ride.airportFee)}</span>
+                                                                </div>
+                                                            )}
+                                                            {ride.platformFee > 0 && (
+                                                                <div className="flex justify-between bg-white/60 rounded-lg px-2 py-1">
+                                                                    <span className="text-gray-600">Platform:</span>
+                                                                    <span className="font-semibold text-gray-800">{formatCurrency(ride.platformFee)}</span>
+                                                                </div>
+                                                            )}
+                                                            {ride.tolls > 0 && (
+                                                                <div className="flex justify-between bg-white/60 rounded-lg px-2 py-1">
+                                                                    <span className="text-gray-600">Tolls:</span>
+                                                                    <span className="font-semibold text-gray-800">{formatCurrency(ride.tolls)}</span>
+                                                                </div>
+                                                            )}
+                                                            {ride.otherFees > 0 && (
+                                                                <div className="flex justify-between bg-white/60 rounded-lg px-2 py-1">
+                                                                    <span className="text-gray-600">Other:</span>
+                                                                    <span className="font-semibold text-gray-800">{formatCurrency(ride.otherFees)}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="text-sm text-gray-500">Fuel Allocation</div>
-                                                <div className="font-bold text-blue-600">{formatCurrency(ride.fuelAllocation)}</div>
+                                            )}
+
+                                            {/* Bottom Metrics */}
+                                            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                                <div className="text-center flex-1">
+                                                    <div className="text-sm text-gray-500 font-medium">Profit/km</div>
+                                                    <div className={`text-lg font-bold ${ride.profitPerKm >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {formatCurrency(ride.profitPerKm)}
+                                                    </div>
+                                                </div>
+                                                <div className="w-px h-8 bg-gray-200"></div>
+                                                <div className="text-center flex-1">
+                                                    <div className="text-sm text-gray-500 font-medium">Fuel Allocation</div>
+                                                    <div className="text-lg font-bold text-blue-600">{formatCurrency(ride.fuelAllocation)}</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
