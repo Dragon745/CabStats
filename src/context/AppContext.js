@@ -767,7 +767,7 @@ export const AppProvider = ({ children }) => {
 
         // Ride statistics
         const totalRides = dateRides.length;
-        const totalEarnings = dateRides.reduce((sum, ride) => sum + ride.fare, 0);
+        const totalEarnings = dateRides.reduce((sum, ride) => sum + (ride.amountReceived || ride.fare), 0);
         const totalProfit = dateRides.reduce((sum, ride) => sum + ride.profit, 0);
         const averageFare = totalRides > 0 ? totalEarnings / totalRides : 0;
         const averageProfit = totalRides > 0 ? totalProfit / totalRides : 0;
@@ -894,7 +894,7 @@ export const AppProvider = ({ children }) => {
 
         // Ride statistics
         const totalRides = sessionRides.length;
-        const totalEarnings = sessionRides.reduce((sum, ride) => sum + ride.fare, 0);
+        const totalEarnings = sessionRides.reduce((sum, ride) => sum + (ride.amountReceived || ride.fare), 0);
         const totalProfit = sessionRides.reduce((sum, ride) => sum + ride.profit, 0);
         const averageFare = totalRides > 0 ? totalEarnings / totalRides : 0;
         const averageProfit = totalRides > 0 ? totalProfit / totalRides : 0;
@@ -974,6 +974,232 @@ export const AppProvider = ({ children }) => {
         };
     };
 
+    // Weekly stats (last 7 days from selected date)
+    const getWeeklyStats = (endDate) => {
+        const end = new Date(endDate);
+        const start = new Date(end);
+        start.setDate(start.getDate() - 6);
+        return getRangeStats(start, end);
+    };
+
+    // Monthly stats (current month)
+    const getMonthlyStats = (monthDate) => {
+        const date = new Date(monthDate);
+        const start = new Date(date.getFullYear(), date.getMonth(), 1);
+        const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        return getRangeStats(start, end);
+    };
+
+    // All-time stats
+    const getAllTimeStats = () => {
+        return getRangeStats(null, null);
+    };
+
+    // Generic range stats function
+    const getRangeStats = (startDate, endDate) => {
+        let filteredRides = rides;
+        let filteredExpenses = expenses;
+
+        if (startDate) {
+            filteredRides = rides.filter(r => new Date(r.createdAt) >= startDate);
+            filteredExpenses = expenses.filter(e => new Date(e.createdAt) >= startDate);
+        }
+        if (endDate) {
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            filteredRides = filteredRides.filter(r => new Date(r.createdAt) <= endOfDay);
+            filteredExpenses = filteredExpenses.filter(e => new Date(e.createdAt) <= endOfDay);
+        }
+
+        // Calculate all existing stats plus new ones
+        return calculateComprehensiveStats(filteredRides, filteredExpenses);
+    };
+
+    // Comprehensive stats calculation
+    const calculateComprehensiveStats = (ridesData, expensesData) => {
+        // Existing calculations
+        const totalRides = ridesData.length;
+        const totalEarnings = ridesData.reduce((sum, r) => sum + (r.amountReceived || r.fare), 0);
+        const totalTips = ridesData.reduce((sum, r) => sum + (r.tip || 0), 0);
+        const totalProfit = ridesData.reduce((sum, r) => sum + r.profit, 0);
+
+        // NEW: Platform comparison
+        const platformStats = {};
+        ['Uber', 'Ola', 'Rapido', 'Private', 'Other'].forEach(platform => {
+            const platformRides = ridesData.filter(r => r.rideType === platform);
+            platformStats[platform] = {
+                count: platformRides.length,
+                totalEarnings: platformRides.reduce((sum, r) => sum + (r.amountReceived || r.fare), 0),
+                totalProfit: platformRides.reduce((sum, r) => sum + r.profit, 0),
+                totalTips: platformRides.reduce((sum, r) => sum + (r.tip || 0), 0),
+                avgProfit: platformRides.length > 0 ? platformRides.reduce((sum, r) => sum + r.profit, 0) / platformRides.length : 0,
+                avgTip: platformRides.length > 0 ? platformRides.reduce((sum, r) => sum + (r.tip || 0), 0) / platformRides.length : 0,
+            };
+        });
+
+        // NEW: Day of week analysis
+        const dayOfWeekStats = {};
+        ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach((day, index) => {
+            const dayRides = ridesData.filter(r => new Date(r.createdAt).getDay() === index);
+            dayOfWeekStats[day] = {
+                count: dayRides.length,
+                totalProfit: dayRides.reduce((sum, r) => sum + r.profit, 0),
+                avgProfit: dayRides.length > 0 ? dayRides.reduce((sum, r) => sum + r.profit, 0) / dayRides.length : 0,
+            };
+        });
+
+        // NEW: Peak hours analysis (0-23 hours)
+        const hourlyStats = {};
+        for (let hour = 0; hour < 24; hour++) {
+            const hourRides = ridesData.filter(r => new Date(r.startTime).getHours() === hour);
+            hourlyStats[hour] = {
+                count: hourRides.length,
+                totalProfit: hourRides.reduce((sum, r) => sum + r.profit, 0),
+                avgProfit: hourRides.length > 0 ? hourRides.reduce((sum, r) => sum + r.profit, 0) / hourRides.length : 0,
+            };
+        }
+        const peakHour = Object.entries(hourlyStats).sort(([, a], [, b]) => b.totalProfit - a.totalProfit)[0];
+
+        // NEW: Tip analysis
+        const ridesWithTips = ridesData.filter(r => (r.tip || 0) > 0);
+        const tipPercentage = totalRides > 0 ? (ridesWithTips.length / totalRides) * 100 : 0;
+        const avgTipAmount = ridesWithTips.length > 0 ? totalTips / ridesWithTips.length : 0;
+        const bestTip = ridesData.length > 0 ? Math.max(...ridesData.map(r => r.tip || 0)) : 0;
+
+        // NEW: Route/Area analysis (top 5 profitable areas)
+        const areaStats = {};
+        ridesData.forEach(ride => {
+            if (ride.startLocation?.areaName) {
+                if (!areaStats[ride.startLocation.areaName]) {
+                    areaStats[ride.startLocation.areaName] = { count: 0, totalProfit: 0 };
+                }
+                areaStats[ride.startLocation.areaName].count++;
+                areaStats[ride.startLocation.areaName].totalProfit += ride.profit;
+            }
+        });
+        const topAreas = Object.entries(areaStats)
+            .map(([area, data]) => ({ area, ...data, avgProfit: data.totalProfit / data.count }))
+            .sort((a, b) => b.totalProfit - a.totalProfit)
+            .slice(0, 5);
+
+        // Payment method breakdown
+        const paymentMethodStats = {};
+        ['Cash Account', 'Main Account', 'Platform Account'].forEach(method => {
+            const methodRides = ridesData.filter(r => r.paymentMethod === method);
+            paymentMethodStats[method] = {
+                count: methodRides.length,
+                totalAmount: methodRides.reduce((sum, r) => sum + (r.amountReceived || r.fare), 0),
+            };
+        });
+
+        return {
+            // Existing stats
+            totalRides,
+            totalEarnings,
+            totalProfit,
+            averageFare: totalRides > 0 ? totalEarnings / totalRides : 0,
+            averageProfit: totalRides > 0 ? totalProfit / totalRides : 0,
+            bestRide: totalRides > 0 ? Math.max(...ridesData.map(r => r.profit)) : 0,
+            worstRide: totalRides > 0 ? Math.min(...ridesData.map(r => r.profit)) : 0,
+            totalKm: ridesData.reduce((sum, r) => sum + r.km, 0),
+            averageDistance: totalRides > 0 ? ridesData.reduce((sum, r) => sum + r.km, 0) / totalRides : 0,
+            totalTimeMinutes: ridesData.reduce((sum, r) => calculateDuration(r.startTime, r.endTime), 0),
+            averageDuration: totalRides > 0 ? ridesData.reduce((sum, r) => calculateDuration(r.startTime, r.endTime), 0) / totalRides : 0,
+            averageProfitPerKm: ridesData.reduce((sum, r) => sum + r.km, 0) > 0 ? totalProfit / ridesData.reduce((sum, r) => sum + r.km, 0) : 0,
+            averageProfitPerMin: ridesData.reduce((sum, r) => calculateDuration(r.startTime, r.endTime), 0) > 0 ? totalProfit / ridesData.reduce((sum, r) => calculateDuration(r.startTime, r.endTime), 0) : 0,
+            totalFuelAllocation: ridesData.reduce((sum, r) => sum + r.fuelAllocation, 0),
+            totalExpenses: expensesData.reduce((sum, e) => sum + e.amount, 0),
+            expensesByCategory: expensesData.reduce((acc, e) => ({ ...acc, [e.category]: (acc[e.category] || 0) + e.amount }), {}),
+            mostExpensiveCategory: Object.entries(expensesData.reduce((acc, e) => ({ ...acc, [e.category]: (acc[e.category] || 0) + e.amount }), {})).sort(([, a], [, b]) => b - a)[0]?.[0] || 'None',
+            grossEarnings: totalEarnings,
+            netProfit: totalEarnings - expensesData.reduce((sum, e) => sum + e.amount, 0),
+            profitMargin: totalEarnings > 0 ? ((totalEarnings - expensesData.reduce((sum, e) => sum + e.amount, 0)) / totalEarnings) * 100 : 0,
+
+            // NEW stats
+            totalTips,
+            platformStats,
+            dayOfWeekStats,
+            hourlyStats,
+            peakHour: peakHour ? { hour: peakHour[0], ...peakHour[1] } : null,
+            tipPercentage,
+            avgTipAmount,
+            bestTip,
+            topAreas,
+            paymentMethodStats,
+        };
+    };
+
+    // Expense statistics calculation
+    const getExpenseStats = (timeRange, startDate, endDate) => {
+        let filteredExpenses = expenses;
+
+        // Filter by time range
+        if (startDate && endDate) {
+            filteredExpenses = expenses.filter(e => {
+                const expDate = new Date(e.createdAt);
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                // For daily view, compare only the date part (ignore time)
+                if (timeRange === 'daily') {
+                    const expDateOnly = expDate.toISOString().split('T')[0];
+                    const startDateOnly = start.toISOString().split('T')[0];
+                    return expDateOnly === startDateOnly;
+                }
+
+                // For other ranges, use full date comparison
+                return expDate >= start && expDate <= end;
+            });
+        }
+
+        // Calculate all expense metrics
+        const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const categoryBreakdown = {};
+        const accountBreakdown = {};
+        const dailyExpenses = {};
+        const dayOfWeekExpenses = {};
+
+        // Process each expense
+        filteredExpenses.forEach(expense => {
+            // Category breakdown
+            if (!categoryBreakdown[expense.category]) {
+                categoryBreakdown[expense.category] = {
+                    total: 0,
+                    count: 0,
+                    expenses: []
+                };
+            }
+            categoryBreakdown[expense.category].total += expense.amount;
+            categoryBreakdown[expense.category].count++;
+            categoryBreakdown[expense.category].expenses.push(expense);
+
+            // Account breakdown
+            const account = expense.account || (expense.category === 'Fuel' ? 'Fuel Account' : 'Unknown');
+            accountBreakdown[account] = (accountBreakdown[account] || 0) + expense.amount;
+
+            // Daily breakdown
+            const date = new Date(expense.createdAt).toDateString();
+            dailyExpenses[date] = (dailyExpenses[date] || 0) + expense.amount;
+
+            // Day of week breakdown
+            const dayOfWeek = new Date(expense.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
+            dayOfWeekExpenses[dayOfWeek] = (dayOfWeekExpenses[dayOfWeek] || 0) + expense.amount;
+        });
+
+        return {
+            totalExpenses,
+            totalCount: filteredExpenses.length,
+            averageExpense: filteredExpenses.length > 0 ? totalExpenses / filteredExpenses.length : 0,
+            highestExpense: filteredExpenses.length > 0 ? Math.max(...filteredExpenses.map(e => e.amount)) : 0,
+            categoryBreakdown,
+            accountBreakdown,
+            dailyExpenses,
+            dayOfWeekExpenses,
+            topExpenses: filteredExpenses.sort((a, b) => b.amount - a.amount).slice(0, 10),
+            mostFrequentCategory: Object.entries(categoryBreakdown).sort(([, a], [, b]) => b.count - a.count)[0]?.[0] || 'None'
+        };
+    };
+
     const value = {
         // State
         accounts,
@@ -1015,6 +1241,10 @@ export const AppProvider = ({ children }) => {
         getSessionRides,
         getSessionExpenses,
         getSessionStats,
+        getWeeklyStats,
+        getMonthlyStats,
+        getAllTimeStats,
+        getExpenseStats,
         calculateDuration,
         formatCurrency,
         formatTime,

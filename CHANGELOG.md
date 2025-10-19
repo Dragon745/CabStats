@@ -2,11 +2,66 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [5.1.0] - 2025-10-19 21:27:33
+
+### Added
+
+- **Expense Statistics Page**:
+  - **NEW**: Dedicated expense analytics page accessible from Stats section
+  - **NEW**: Comprehensive expense statistics with 4 time period views (Daily, Weekly, Monthly, All-Time)
+  - **NEW**: Overview card showing total expenses, average amount, highest expense, and expense count
+  - **NEW**: Category breakdown card with visual representation of spending by category
+  - **NEW**: Account usage analysis showing expenses per account (Cash, Main, Platform, Fuel)
+  - **NEW**: Day-of-week spending analysis with heatmap visualization
+  - **NEW**: Top 10 highest expenses list with detailed information
+  - **NEW**: Spending insights card with key metrics and recommendations
+  - **NEW**: Professional UI with color-coded category icons and responsive design
+  - **NEW**: Full-screen modal navigation with seamless back button functionality
+
+### Fixed
+
+- Fixed FaTrendingUp import error in ExpenseStats component by replacing with FaArrowTrendUp from react-icons/fa6
+- Fixed missing showExpenseStats state variable in Stats component causing undefined reference errors
+- Fixed ExpenseStats not displaying by implementing proper full-screen modal rendering (early return pattern)
+- Fixed daily view filtering in ExpenseStats by improving date comparison logic to handle timezone issues
+- Removed debug information from ExpenseStats component after confirming functionality
 
 ## [5.0.0] - 2025-10-19 19:05:11
 
 ### Added
+
+- **Advanced Analytics Dashboard**:
+
+  - **NEW**: Comprehensive statistics system with 5 time period views (Date, Session, Weekly, Monthly, All-Time)
+  - **NEW**: Platform performance comparison showing Uber, Ola, Rapido, Private, and Other ride profitability
+  - **NEW**: Day-of-week analysis with visual representation of most profitable days
+  - **NEW**: Peak hours analysis showing hourly breakdown of rides and profits with recommendations
+  - **NEW**: Advanced tip analysis including tip percentage, average tip amount, and best tip tracking
+  - **NEW**: Top pickup areas analysis showing most profitable locations based on GPS data
+  - **NEW**: Payment method breakdown (Cash, Main Account, Platform Account) with performance metrics
+  - **NEW**: Key Insights summary card highlighting best platform, day, hour, tip rate, and top area
+  - **NEW**: Enhanced visual design with color-coded performance indicators and professional icons
+  - **NEW**: Comprehensive financial summary with profit margins and expense categorization
+  - **NEW**: Real-time statistics calculation with efficient data processing
+  - **NEW**: Mobile-responsive analytics dashboard with intuitive navigation
+  - Enhanced driver decision-making with data-driven insights for optimization
+  - Improved earnings visibility through comprehensive performance analysis
+
+- **Expense Statistics Page**:
+
+  - **NEW**: Dedicated expense analytics page accessible from main Stats section
+  - **NEW**: Comprehensive expense statistics with 4 time period views (Daily, Weekly, Monthly, All-Time)
+  - **NEW**: Category breakdown analysis showing spending patterns across all 15 expense categories
+  - **NEW**: Account usage tracking showing expenses per account (Cash, Main, Platform, Fuel)
+  - **NEW**: Day-of-week spending analysis with visual heatmap representation
+  - **NEW**: Top 10 highest expenses list with detailed transaction information
+  - **NEW**: Spending insights card highlighting most frequent category and highest spending day
+  - **NEW**: Color-coded category icons and visual representations for easy identification
+  - **NEW**: Professional expense statistics calculation engine with efficient data processing
+  - **NEW**: Mobile-responsive expense analytics with intuitive navigation and back button
+  - **NEW**: Real-time expense filtering and aggregation across different time periods
+  - Enhanced expense awareness and budget management capabilities
+  - Improved financial planning with detailed spending pattern analysis
 
 - **Tip Calculation System**:
 
